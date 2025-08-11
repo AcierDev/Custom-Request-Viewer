@@ -15,8 +15,8 @@ export function getDimensionsDetails(dimensions: Dimensions) {
       height: dimensions.height,
     },
     inches: {
-      width: dimensions.width * 0.5, // Each block is roughly 0.5 inches
-      height: dimensions.height * 0.5,
+      width: dimensions.width * 3, // Each block is 3 inches
+      height: dimensions.height * 3,
     },
   };
 }

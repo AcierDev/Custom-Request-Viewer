@@ -3,6 +3,7 @@
 import { useLoader } from "@react-three/fiber";
 import { TextureLoader } from "three";
 import { useCustomStore } from "@/store/customStore";
+import { getColorEntries } from "@/lib/patternUtils";
 import { useEffect, useState, useMemo, memo } from "react";
 import * as THREE from "three";
 
@@ -39,6 +40,10 @@ export const PlywoodBase = memo(function PlywoodBase({
     }
   }, [texture, showWoodGrain]);
 
+  // Get store values for color calculation
+  const { selectedDesign, customPalette, isReversed, colorPattern } =
+    useCustomStore();
+
   // Memoize all calculations to prevent recalculation on every render
   const dimensions = useMemo(() => {
     // Use the same blockSpacing factor as in GeometricPattern
@@ -49,8 +54,8 @@ export const PlywoodBase = memo(function PlywoodBase({
     const totalWidth = adjustedModelWidth * blockSize * blockSpacing;
     const totalHeight = adjustedModelHeight * blockSize * blockSpacing;
 
-    const offsetX = -totalWidth / 2 - 0.25 + (useMini ? 0.03 : 0);
-    const offsetY = -totalHeight / 2 - 0.25 + (useMini ? 0.03 : 0);
+    const offsetX = 0.5 - totalWidth / 2 - 0.25 + (useMini ? 0.03 : 0);
+    const offsetY = 0.5 - totalHeight / 2 - 0.25 + (useMini ? 0.03 : 0);
 
     // Compute center position to align with the blocks grid
     const centerX =
@@ -76,6 +81,40 @@ export const PlywoodBase = memo(function PlywoodBase({
   // Destructure memoized values
   const { baseThickness, totalWidth, totalHeight, centerX, centerY } =
     dimensions;
+
+  // Memoize colors to prevent recalculation
+  const colors = useMemo(() => {
+    // Get the appropriate color entries
+    const colorEntries = getColorEntries(selectedDesign, customPalette);
+
+    // Determine the colors based on pattern and reverse settings
+    let leftColor = "#8B5E3B";
+    let rightColor = "#8B5E3B";
+
+    if (colorEntries.length > 0) {
+      if (colorPattern === "center-fade") {
+        // For center fade, both sides should be the same color
+        const endColor = isReversed
+          ? colorEntries[colorEntries.length - 1][1].hex
+          : colorEntries[0][1].hex;
+        leftColor = endColor;
+        rightColor = endColor;
+      } else {
+        // For other patterns, respect the reverse setting
+        if (isReversed) {
+          leftColor = colorEntries[colorEntries.length - 1][1].hex;
+          rightColor = colorEntries[0][1].hex;
+        } else {
+          leftColor = colorEntries[0][1].hex;
+          rightColor = colorEntries[colorEntries.length - 1][1].hex;
+        }
+      }
+    }
+
+    return { leftColor, rightColor };
+  }, [selectedDesign, customPalette, isReversed, colorPattern]);
+
+  const { leftColor, rightColor } = colors;
 
   // Process texture if available
   useEffect(() => {
@@ -105,13 +144,58 @@ export const PlywoodBase = memo(function PlywoodBase({
   }, [texture, showWoodGrain]);
 
   return (
-    <mesh
-      position={[centerX, centerY, -baseThickness / 2]}
-      material={material}
-      castShadow
-      receiveShadow
-    >
-      <boxGeometry args={[totalWidth, totalHeight, baseThickness]} />
-    </mesh>
+    <>
+      {/* Main plywood base */}
+      <mesh
+        position={[centerX, centerY, -baseThickness / 2]}
+        material={material}
+        castShadow
+        receiveShadow
+      >
+        <boxGeometry args={[totalWidth, totalHeight, baseThickness]} />
+      </mesh>
+
+      {/* Left side panel - colored */}
+      <mesh
+        position={[
+          (useMini ? 0.03 : 0) - 0.248 - totalWidth / 2 + 0.5,
+          (useMini ? 0.03 : 0) - 0.25 + 0.5,
+          -0.035,
+        ]}
+        rotation={[0, Math.PI / 2, 0]}
+        castShadow
+        receiveShadow
+      >
+        <boxGeometry
+          args={[baseThickness + 0.001, totalHeight + 0.001, 0.005]}
+        />
+        <meshStandardMaterial
+          color={leftColor}
+          roughness={0.8}
+          metalness={0.1}
+        />
+      </mesh>
+
+      {/* Right side panel - colored */}
+      <mesh
+        position={[
+          (useMini ? -0.47 : -0.5) + 0.248 + totalWidth / 2 + 0.001 + 0.5,
+          (useMini ? 0.03 : 0) - 0.25 + 0.5,
+          -0.035,
+        ]}
+        rotation={[0, Math.PI / 2, 0]}
+        castShadow
+        receiveShadow
+      >
+        <boxGeometry
+          args={[baseThickness + 0.001, totalHeight + 0.001, 0.005]}
+        />
+        <meshStandardMaterial
+          color={rightColor}
+          roughness={0.8}
+          metalness={0.1}
+        />
+      </mesh>
+    </>
   );
 });

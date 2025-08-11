@@ -2,10 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { useThree } from "@react-three/fiber";
+import { useCustomStore } from "@/store/customStore";
 
 export function GeometricLighting() {
   const lightGroupRef = useRef<THREE.Group>(null);
+  const { lighting } = useCustomStore();
 
   useEffect(() => {
     // Clean up function to remove lights when component unmounts
@@ -23,49 +24,57 @@ export function GeometricLighting() {
   return (
     <group ref={lightGroupRef}>
       {/* Ambient light - softer for geometric patterns to enhance shadows */}
-      <ambientLight intensity={1} />
+      <ambientLight intensity={lighting.ambientIntensity} color="#ffffff" />
 
-      {/* Primary directional light - top right */}
+      {/* Key light - top right */}
       <directionalLight
         position={[15, 5, 5]}
         castShadow
-        intensity={0.7}
+        color="#ffffff"
+        intensity={lighting.keyIntensity}
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
-      ></directionalLight>
+      />
 
+      {/* Fill light - bottom right */}
       <directionalLight
         position={[15, -5, 5]}
         castShadow
-        intensity={0.7}
+        color="#ffffff"
+        intensity={lighting.fillIntensity}
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
-      ></directionalLight>
+      />
 
-      {/* Secondary light source (bottom-left-back) */}
+      {/* Back lights */}
       <directionalLight
         position={[-5, -5, 10]}
         castShadow
-        intensity={0.5}
+        color="#ffffff"
+        intensity={lighting.backIntensity}
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
-      ></directionalLight>
+      />
 
+      {/* Rim light */}
       <directionalLight
         position={[-15, -2, 5]}
         castShadow
-        intensity={0.3}
+        color="#ffffff"
+        intensity={lighting.rimIntensity}
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
-      ></directionalLight>
+      />
 
+      {/* Rear back light */}
       <directionalLight
         position={[0, 0, -5]}
         castShadow
-        intensity={0.5}
+        color="#ffffff"
+        intensity={lighting.backIntensity}
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
-      ></directionalLight>
+      />
     </group>
   );
 }
