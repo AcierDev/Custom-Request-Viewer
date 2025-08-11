@@ -64,7 +64,7 @@ interface CustomStore {
 
 export const useCustomStore = create<CustomStore>((set) => ({
   // Initial state
-  dimensions: { width: 28, height: 12 },
+  dimensions: { width: 28, height: 12 }, // 28 blocks wide, 12 blocks tall
   selectedDesign: ItemDesigns.Coastal,
   colorPattern: "horizontal",
   orientation: "horizontal",
@@ -74,7 +74,7 @@ export const useCustomStore = create<CustomStore>((set) => ({
   viewSettings: {
     showRuler: false,
     showWoodGrain: true,
-    showColorInfo: true,
+    showColorInfo: false, // Disabled to remove hover effects
     showUIControls: true,
     showSplitPanel: false,
   },

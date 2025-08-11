@@ -1,6 +1,6 @@
 "use client";
 
-import { useCustomStore, hoverStore } from "@/store/customStore";
+import { useCustomStore } from "@/store/customStore";
 import { getDimensionsDetails } from "@/lib/utils";
 import { useRef, useEffect, useState, useMemo, memo, useCallback } from "react";
 import { Html } from "@react-three/drei";
@@ -41,12 +41,6 @@ export function GeometricPattern({
     customPalette: storeCustomPalette,
     viewSettings,
   } = customStore;
-
-  // Use the hover store
-  const hoverInfo = hoverStore((state) => state.hoverInfo);
-  const pinnedInfo = hoverStore((state) => state.pinnedInfo);
-  const setHoverInfo = hoverStore((state) => state.setHoverInfo);
-  const setPinnedInfo = hoverStore((state) => state.setPinnedInfo);
 
   // Use values from customDesign when provided, otherwise use store values
   const dimensions = customDesign?.dimensions || storeDimensions;
@@ -234,20 +228,20 @@ export function GeometricPattern({
   // Memoize hover handlers
   const handleBlockHover = useCallback(
     (x: number, y: number, color: string, colorName?: string) => {
-      setHoverInfo({ position: [x, y], color, colorName });
+      // No hover functionality
     },
-    [setHoverInfo]
+    []
   );
 
   const handleBlockUnhover = useCallback(() => {
-    setHoverInfo(null);
-  }, [setHoverInfo]);
+    // No hover functionality
+  }, []);
 
   const handleBlockClick = useCallback(
     (x: number, y: number, color: string, colorName?: string) => {
-      setPinnedInfo({ position: [x, y], color, colorName });
+      // No click functionality
     },
-    [setPinnedInfo]
+    []
   );
 
   // Memoize the block grid to prevent recreation on every render
@@ -278,16 +272,6 @@ export function GeometricPattern({
         );
         const textureVariation = textureVariationsRef.current![x][y];
 
-        const isBlockHovered =
-          hoverInfo &&
-          hoverInfo.position[0] === x &&
-          hoverInfo.position[1] === y;
-
-        const isPinned =
-          pinnedInfo &&
-          pinnedInfo.position[0] === x &&
-          pinnedInfo.position[1] === y;
-
         // Only render if color is not null
         if (color && color !== "null") {
           blocks.push(
@@ -304,20 +288,14 @@ export function GeometricPattern({
                 size={blockSize}
                 height={blockSize}
                 color={color}
-                isHovered={!!(isBlockHovered || isPinned)} // Convert to boolean to fix type error
+                isHovered={false}
                 showWoodGrain={showWoodGrain}
-                showColorInfo={showColorInfo}
+                showColorInfo={false}
                 isGeometric={true}
                 rotation={rotation}
                 textureVariation={textureVariation}
-                onHover={(isHovering) => {
-                  if (isHovering) {
-                    handleBlockHover(x, y, color, colorName);
-                  } else {
-                    handleBlockUnhover();
-                  }
-                }}
-                onClick={() => handleBlockClick(x, y, color, colorName)}
+                onHover={undefined}
+                onClick={undefined}
               />
             </animated.group>
           );
@@ -336,24 +314,16 @@ export function GeometricPattern({
     useMini,
     rotationSeedsRef,
     textureVariationsRef,
-    hoverInfo,
-    pinnedInfo,
     driftFactor,
     showWoodGrain,
-    showColorInfo,
     getColorIndexDebug,
     calculateDrift,
-    handleBlockHover,
-    handleBlockUnhover,
-    handleBlockClick,
   ]);
 
   // Handle group click outside of render to prevent unnecessary recreations
   const handleGroupClick = useCallback((e: { object: { type: string } }) => {
-    if (e.object.type === "Group") {
-      setPinnedInfo(null);
-    }
-  }, [setPinnedInfo]);
+    // No group click functionality
+  }, []);
 
   return (
     <>
@@ -386,46 +356,6 @@ export function GeometricPattern({
         {/* Use the pre-computed block grid */}
         {blockGrid}
       </group>
-
-      {/* Only render info panels when needed */}
-      {hoverInfo && showColorInfo && (
-        <Html position={[hoverInfo.position[0], hoverInfo.position[1], 0.5]}>
-          <div className="bg-white dark:bg-gray-800 p-2 rounded shadow-md text-xs whitespace-nowrap">
-            <div className="flex items-center gap-2">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: hoverInfo.color }}
-              ></div>
-              <span className="font-medium text-gray-800 dark:text-gray-200">
-                {hoverInfo.colorName || "Custom Color"}
-              </span>
-            </div>
-            <div className="text-gray-500 dark:text-gray-400 mt-1">
-              {hoverInfo.color.toUpperCase()}
-            </div>
-          </div>
-        </Html>
-      )}
-
-      {/* Render pinned info */}
-      {pinnedInfo && showColorInfo && (
-        <Html position={[pinnedInfo.position[0], pinnedInfo.position[1], 0.5]}>
-          <div className="bg-blue-100 dark:bg-blue-800 p-2 rounded shadow-md text-xs whitespace-nowrap border border-blue-300 dark:border-blue-600">
-            <div className="flex items-center gap-2">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: pinnedInfo.color }}
-              ></div>
-              <span className="font-medium text-blue-800 dark:text-blue-200">
-                {pinnedInfo.colorName || "Custom Color"} (Pinned)
-              </span>
-            </div>
-            <div className="text-blue-600 dark:text-blue-300 mt-1">
-              {pinnedInfo.color.toUpperCase()}
-            </div>
-          </div>
-        </Html>
-      )}
     </>
   );
 }

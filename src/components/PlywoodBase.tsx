@@ -25,57 +25,93 @@ export const PlywoodBase = memo(function PlywoodBase({
   adjustedModelHeight,
   useMini,
 }: PlywoodBaseProps) {
-  const [texture, setTexture] = useState<THREE.Texture | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Load texture using useLoader for better performance
+  const texture = showWoodGrain
+    ? useLoader(TextureLoader, "/textures/plywood.jpg", (loader) => {
+        console.log("Plywood texture loaded successfully");
+      })
+    : null;
 
-  // Load texture
+  // Debug texture loading
   useEffect(() => {
-    if (!showWoodGrain) {
-      setTexture(null);
-      setIsLoading(false);
-      return;
+    if (showWoodGrain) {
+      console.log("Plywood texture status:", texture ? "loaded" : "not loaded");
     }
+  }, [texture, showWoodGrain]);
 
-    const loader = new TextureLoader();
-    loader.load(
-      "/textures/plywood.jpg",
-      (loadedTexture) => {
-        loadedTexture.wrapS = loadedTexture.wrapT = THREE.RepeatWrapping;
-        loadedTexture.repeat.set(width / 2, height / 2);
-        loadedTexture.anisotropy = 8;
-        setTexture(loadedTexture);
-        setIsLoading(false);
-      },
-      undefined,
-      (error) => {
-        console.error("Error loading plywood texture:", error);
-        setIsLoading(false);
-      }
-    );
-  }, [showWoodGrain, width, height]);
+  // Memoize all calculations to prevent recalculation on every render
+  const dimensions = useMemo(() => {
+    // Use the same blockSpacing factor as in GeometricPattern
+    const blockSpacing = useMini ? 0.9 : 1;
+    const baseThickness = 0.07;
 
+    // Compute accurate dimensions using the same calculation as the geometric pattern
+    const totalWidth = adjustedModelWidth * blockSize * blockSpacing;
+    const totalHeight = adjustedModelHeight * blockSize * blockSpacing;
+
+    const offsetX = -totalWidth / 2 - 0.25 + (useMini ? 0.03 : 0);
+    const offsetY = -totalHeight / 2 - 0.25 + (useMini ? 0.03 : 0);
+
+    // Compute center position to align with the blocks grid
+    const centerX =
+      offsetX +
+      blockSize / 2 +
+      ((adjustedModelWidth - 1) * blockSize * blockSpacing) / 2;
+    const centerY =
+      offsetY +
+      blockSize / 2 +
+      ((adjustedModelHeight - 1) * blockSize * blockSpacing) / 2;
+
+    return {
+      baseThickness,
+      totalWidth,
+      totalHeight,
+      centerX,
+      centerY,
+      offsetX,
+      offsetY,
+    };
+  }, [adjustedModelWidth, adjustedModelHeight, blockSize, useMini]);
+
+  // Destructure memoized values
+  const { baseThickness, totalWidth, totalHeight, centerX, centerY } =
+    dimensions;
+
+  // Process texture if available
+  useEffect(() => {
+    if (texture) {
+      texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+      texture.repeat.set(totalWidth / 2, totalHeight / 2);
+      texture.anisotropy = 8;
+      texture.needsUpdate = true;
+    }
+  }, [texture, totalWidth, totalHeight]);
+
+  // Create material with memoization
   const material = useMemo(() => {
-    return new THREE.MeshStandardMaterial({
+    const mat = new THREE.MeshStandardMaterial({
       map: texture,
-      color: showWoodGrain ? "#8B5E3B" : "#D2B48C",
+      color: showWoodGrain ? "#FFFFFF" : "#D2B48C", // Use white when texture is applied
       roughness: 0.9,
       metalness: 0.1,
     });
-  }, [texture, showWoodGrain]);
 
-  // Calculate base dimensions
-  const baseWidth = width + blockSize * 2;
-  const baseHeight = height + blockSize * 2;
-  const baseDepth = blockSize * 0.1; // Very thin base
+    // Ensure the material updates when texture changes
+    if (texture) {
+      mat.needsUpdate = true;
+    }
+
+    return mat;
+  }, [texture, showWoodGrain]);
 
   return (
     <mesh
-      position={[0, 0, -baseDepth / 2]}
+      position={[centerX, centerY, -baseThickness / 2]}
       material={material}
       castShadow
       receiveShadow
     >
-      <boxGeometry args={[baseWidth, baseHeight, baseDepth]} />
+      <boxGeometry args={[totalWidth, totalHeight, baseThickness]} />
     </mesh>
   );
 });

@@ -29,7 +29,7 @@ export default function PreviewPage() {
       {/* Header */}
       <div className="absolute top-4 left-4 z-50">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Coastal Dream 28" x 12"
+          Coastal Dream 28 x 12 Blocks
         </h1>
         <p className="text-sm text-gray-600 dark:text-gray-300">
           3D Geometric Pattern Viewer
@@ -87,7 +87,7 @@ export default function PreviewPage() {
               Geometric Style
             </span>
             <span className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded">
-              28" x 12"
+              28 x 12 Blocks
             </span>
             <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded">
               Coastal Colors
