@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useCustomStore } from "@/store/customStore";
+import { Share2, Copy, Check, Loader2 } from "lucide-react";
 
 const WALL_PRESETS: Array<{ name: string; hex: string }> = [
   { name: "White", hex: "#ffffff" },
@@ -88,7 +89,13 @@ export function ControlPanel() {
     setDimensionsByUnit,
     viewSettings,
     setShowUIControls,
+    createSharedDesign,
   } = useCustomStore();
+
+  const [shareableLink, setShareableLink] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [shareId, setShareId] = useState("");
 
   // Local derived values for size inputs
   const unitDimensions = useMemo(() => {
@@ -119,6 +126,112 @@ export function ControlPanel() {
   const commitSize = (w: number, h: number) => {
     if (Number.isFinite(w) && Number.isFinite(h)) {
       setDimensionsByUnit(w, h, sizeUnit);
+    }
+  };
+
+  // Apply size changes only on blur to avoid automatic snapping
+  const handleSizeCommit = () => {
+    const w = typeof widthVal === "string" ? parseFloat(widthVal) : widthVal;
+    const h = typeof heightVal === "string" ? parseFloat(heightVal) : heightVal;
+    if (Number.isFinite(w) && Number.isFinite(h) && w >= 1 && h >= 1) {
+      setDimensionsByUnit(w, h, sizeUnit);
+    }
+  };
+
+  // Apply size changes immediately while typing, but prevent infinite loops
+  const lastCommittedRef = useRef<{ w: number; h: number; unit: string }>({
+    w: dimensions.width,
+    h: dimensions.height,
+    unit: sizeUnit,
+  });
+
+  // Update ref when dimensions change from external sources (like unit changes)
+  useEffect(() => {
+    lastCommittedRef.current = {
+      w: dimensions.width,
+      h: dimensions.height,
+      unit: sizeUnit,
+    };
+  }, [dimensions.width, dimensions.height, sizeUnit]);
+
+  const handleSizeChange = (newW: number | string, newH: number | string) => {
+    const w = typeof newW === "string" ? parseFloat(newW) : newW;
+    const h = typeof newH === "string" ? parseFloat(newH) : newH;
+
+    if (!Number.isFinite(w) || !Number.isFinite(h) || w < 1 || h < 1) return;
+
+    // Convert to blocks for comparison
+    let targetBlocksW = w;
+    let targetBlocksH = h;
+    if (sizeUnit === "inches") {
+      targetBlocksW = w / 3;
+      targetBlocksH = h / 3;
+    } else if (sizeUnit === "feet") {
+      targetBlocksW = (w * 12) / 3;
+      targetBlocksH = (h * 12) / 3;
+    }
+
+    // Only update if the target block count is different from what we last committed
+    const epsilon = 1e-6;
+    const wDiff =
+      Math.abs(targetBlocksW - lastCommittedRef.current.w) > epsilon;
+    const hDiff =
+      Math.abs(targetBlocksH - lastCommittedRef.current.h) > epsilon;
+    const unitDiff = sizeUnit !== lastCommittedRef.current.unit;
+
+    if (wDiff || hDiff || unitDiff) {
+      setDimensionsByUnit(w, h, sizeUnit);
+      lastCommittedRef.current = {
+        w: targetBlocksW,
+        h: targetBlocksH,
+        unit: sizeUnit,
+      };
+    }
+  };
+
+  // Validation for block increments (1 block = 3 inches)
+  const epsilon = 1e-6;
+  const toNumber = (v: number | string) =>
+    typeof v === "string" ? parseFloat(v) : v;
+  const isMultipleOf = (val: number, step: number) => {
+    if (!Number.isFinite(val)) return true;
+    const ratio = val / step;
+    return Math.abs(ratio - Math.round(ratio)) < epsilon;
+  };
+  const numericW = toNumber(widthVal);
+  const numericH = toNumber(heightVal);
+  const isInches = sizeUnit === "inches";
+  const isFeet = sizeUnit === "feet";
+  const isBlocks = sizeUnit === "blocks";
+  const validW = isBlocks
+    ? Number.isFinite(numericW) && Number.isInteger(numericW) && numericW >= 1
+    : isInches
+    ? isMultipleOf(numericW, 3)
+    : isMultipleOf(numericW, 0.25);
+  const validH = isBlocks
+    ? Number.isFinite(numericH) && Number.isInteger(numericH) && numericH >= 1
+    : isInches
+    ? isMultipleOf(numericH, 3)
+    : isMultipleOf(numericH, 0.25);
+  const anyInvalid =
+    Number.isFinite(numericW) &&
+    Number.isFinite(numericH) &&
+    (!validW || !validH) &&
+    (isInches || isFeet);
+
+  const snapToNearest = () => {
+    if (!Number.isFinite(numericW) || !Number.isFinite(numericH)) return;
+    if (isInches) {
+      const w = Math.round(numericW / 3) * 3;
+      const h = Math.round(numericH / 3) * 3;
+      setWidthVal(Math.max(1, w));
+      setHeightVal(Math.max(1, h));
+    } else if (isFeet) {
+      // 1 block = 0.25 ft
+      const w = Math.round(numericW / 0.25) * 0.25;
+      const h = Math.round(numericH / 0.25) * 0.25;
+      setWidthVal(parseFloat(Math.max(0.25, w).toFixed(2)));
+      setHeightVal(parseFloat(Math.max(0.25, h).toFixed(2)));
     }
   };
 
@@ -201,6 +314,37 @@ export function ControlPanel() {
   const handleShadowsChange = (val: number) => {
     setShadowContrast(val);
     applyLightingFromBase(LIGHTING_PRESETS[selectedPreset], brightness, val);
+  };
+
+  const handleGenerateLink = async () => {
+    setIsGenerating(true);
+
+    try {
+      const result = await createSharedDesign();
+
+      if (result.success && result.shareUrl) {
+        setShareableLink(result.shareUrl);
+        setShareId(result.shareId || "");
+        alert("Share link generated successfully!");
+      } else {
+        alert(result.error || "Failed to create shared design");
+      }
+    } catch (error) {
+      console.error("Error generating link:", error);
+      alert("Failed to generate shareable link");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(shareableLink);
+    setCopied(true);
+    alert("Link copied to clipboard!");
+
+    setTimeout(() => {
+      setCopied(false);
+    }, 2000);
   };
 
   return (
@@ -389,9 +533,16 @@ export function ControlPanel() {
                   }
                   min={1}
                   value={widthVal}
-                  onChange={(e) => setWidthVal(e.target.valueAsNumber || 0)}
-                  onBlur={() => commitSize(Number(widthVal), Number(heightVal))}
-                  className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => {
+                    setWidthVal(e.target.value);
+                    handleSizeChange(e.target.value, heightVal);
+                  }}
+                  onBlur={handleSizeCommit}
+                  className={`w-full rounded-md border bg-white/60 dark:bg-gray-800/60 px-2 py-1 text-sm focus:outline-none focus:ring-2 ${
+                    !validW && (isInches || isFeet)
+                      ? "border-amber-400 focus:ring-amber-500"
+                      : "border-gray-300 dark:border-gray-700 focus:ring-blue-500"
+                  }`}
                 />
               </div>
               <div className="space-y-1">
@@ -405,9 +556,16 @@ export function ControlPanel() {
                   }
                   min={1}
                   value={heightVal}
-                  onChange={(e) => setHeightVal(e.target.valueAsNumber || 0)}
-                  onBlur={() => commitSize(Number(widthVal), Number(heightVal))}
-                  className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => {
+                    setHeightVal(e.target.value);
+                    handleSizeChange(widthVal, e.target.value);
+                  }}
+                  onBlur={handleSizeCommit}
+                  className={`w-full rounded-md border bg-white/60 dark:bg-gray-800/60 px-2 py-1 text-sm focus:ring-2 ${
+                    !validH && (isInches || isFeet)
+                      ? "border-amber-400 focus:ring-amber-500"
+                      : "border-gray-300 dark:border-gray-700 focus:ring-blue-500"
+                  }`}
                 />
               </div>
             </div>
@@ -426,9 +584,97 @@ export function ControlPanel() {
               </select>
             </div>
           </div>
+          {anyInvalid && (
+            <div className="mt-2 rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-200">
+              <div className="flex items-center justify-between gap-2">
+                <p>
+                  Each block equals 3 inches. Please use{" "}
+                  {isFeet ? "0.25 ft" : "3 inch"} increments.
+                </p>
+                <button
+                  type="button"
+                  onClick={snapToNearest}
+                  className="shrink-0 rounded border border-amber-300/80 px-2 py-0.5 text-[10px] font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                >
+                  Snap
+                </button>
+              </div>
+            </div>
+          )}
           <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
             1 block = 3 inches.
           </p>
+        </section>
+
+        {/* Share Card */}
+        <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/70 dark:bg-gray-900/70 shadow-sm p-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                Share Design
+              </h3>
+              <p className="text-xs text-gray-600 dark:text-gray-300">
+                Create a shareable link for your current design.
+              </p>
+            </div>
+          </div>
+
+          {!shareableLink ? (
+            <button
+              onClick={handleGenerateLink}
+              disabled={isGenerating}
+              className="mt-3 w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
+                  Generating Link...
+                </>
+              ) : (
+                <>
+                  <Share2 className="mr-2 h-4 w-4 inline" />
+                  Generate Shareable Link
+                </>
+              )}
+            </button>
+          ) : (
+            <div className="mt-3 space-y-2">
+              {shareId && (
+                <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                  Share ID: {shareId}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  value={shareableLink}
+                  readOnly
+                  className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-xs"
+                />
+                <button
+                  onClick={handleCopyLink}
+                  className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                    copied
+                      ? "bg-green-600 hover:bg-green-700 text-white"
+                      : "bg-blue-600 hover:bg-blue-700 text-white"
+                  }`}
+                >
+                  {copied ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </button>
+              </div>
+
+              <button
+                onClick={handleGenerateLink}
+                className="w-full text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              >
+                Generate New Link
+              </button>
+            </div>
+          )}
         </section>
       </div>
     </motion.aside>

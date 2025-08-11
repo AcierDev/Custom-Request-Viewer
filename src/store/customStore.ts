@@ -79,9 +79,20 @@ interface CustomStore {
   setLighting: (updater: Partial<LightingSettings>) => void;
   setSizeUnit: (unit: SizeUnit) => void;
   setCustomPalette: (palette: Array<{ hex: string; name?: string }>) => void;
+  createSharedDesign: (
+    userId?: string,
+    email?: string
+  ) => Promise<{
+    success: boolean;
+    shareId?: string;
+    shareUrl?: string;
+    error?: string;
+  }>;
+  loadFromShareableData: (data: string) => boolean;
+  loadFromDatabaseData: (designData: any) => boolean;
 }
 
-export const useCustomStore = create<CustomStore>((set) => ({
+export const useCustomStore = create<CustomStore>((set, get) => ({
   // Initial state
   dimensions: { width: 28, height: 12 }, // 28 blocks wide, 12 blocks tall
   selectedDesign: ItemDesigns.Coastal,
@@ -98,7 +109,7 @@ export const useCustomStore = create<CustomStore>((set) => ({
     showUIControls: true,
     showSplitPanel: false,
   },
-  backgroundColor: "#f3f4f6", // Tailwind gray-100
+  backgroundColor: "#faf7f2", // Tailwind gray-100
   lighting: {
     ambientIntensity: 1,
     keyIntensity: 0.7,
@@ -144,4 +155,97 @@ export const useCustomStore = create<CustomStore>((set) => ({
     set((state) => ({ lighting: { ...state.lighting, ...updater } })),
   setSizeUnit: (unit) => set({ sizeUnit: unit }),
   setCustomPalette: (customPalette) => set({ customPalette }),
+  createSharedDesign: async (userId?: string, email?: string) => {
+    const state = get();
+
+    const shareableState = {
+      dimensions: state.dimensions,
+      selectedDesign: state.selectedDesign,
+      colorPattern: state.colorPattern,
+      orientation: state.orientation,
+      isReversed: state.isReversed,
+      customPalette: state.customPalette,
+      isRotated: state.isRotated,
+      useMini: state.useMini,
+    };
+
+    try {
+      const response = await fetch("/api/shared-designs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          designData: shareableState,
+          userId,
+          email,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create shared design");
+      }
+
+      const result = await response.json();
+      return {
+        success: true,
+        shareId: result.shareId,
+        shareUrl: result.shareUrl,
+      };
+    } catch (error) {
+      console.error("Error creating shared design:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  },
+  loadFromShareableData: (data: string) => {
+    try {
+      const shareableState = JSON.parse(data);
+
+      if (!shareableState.dimensions || !shareableState.selectedDesign) {
+        return false;
+      }
+
+      set({
+        dimensions: shareableState.dimensions,
+        selectedDesign: shareableState.selectedDesign,
+        colorPattern: shareableState.colorPattern,
+        orientation: shareableState.orientation,
+        isReversed: shareableState.isReversed,
+        customPalette: shareableState.customPalette,
+        isRotated: shareableState.isRotated,
+        useMini: shareableState.useMini,
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Failed to load shared data:", error);
+      return false;
+    }
+  },
+  loadFromDatabaseData: (designData: any) => {
+    try {
+      if (!designData.dimensions || !designData.selectedDesign) {
+        return false;
+      }
+
+      set({
+        dimensions: designData.dimensions,
+        selectedDesign: designData.selectedDesign,
+        colorPattern: designData.colorPattern,
+        orientation: designData.orientation,
+        isReversed: designData.isReversed,
+        customPalette: designData.customPalette,
+        isRotated: designData.isRotated,
+        useMini: designData.useMini,
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Failed to load database data:", error);
+      return false;
+    }
+  },
 }));
