@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { ItemDesigns } from "@/typings/types";
 import { getBackgroundColorForLighting } from "@/lib/utils";
+import { SizeSelector } from "@/components/ui/size-selector";
 
 const WALL_PRESETS: Array<{ name: string; hex: string }> = [
   { name: "White", hex: "#ffffff" },
@@ -614,48 +615,70 @@ export function ControlPanel() {
                     Size
                   </label>
                   <div className="grid grid-cols-3 gap-2">
+                    <SizeSelector
+                      label="Width"
+                      min={1}
+                      max={
+                        sizeUnit === "blocks"
+                          ? 50
+                          : sizeUnit === "inches"
+                          ? 150
+                          : 12.5
+                      }
+                      defaultValue={
+                        typeof widthVal === "string"
+                          ? parseFloat(widthVal)
+                          : widthVal
+                      }
+                      step={
+                        sizeUnit === "feet"
+                          ? 0.25
+                          : sizeUnit === "inches"
+                          ? 3
+                          : 1
+                      }
+                      onChange={(value) => {
+                        setWidthVal(value);
+                        handleSizeChange(value, heightVal);
+                      }}
+                      className="col-span-1"
+                    />
+                    <SizeSelector
+                      label="Height"
+                      min={1}
+                      max={
+                        sizeUnit === "blocks"
+                          ? 50
+                          : sizeUnit === "inches"
+                          ? 150
+                          : 12.5
+                      }
+                      defaultValue={
+                        typeof heightVal === "string"
+                          ? parseFloat(heightVal)
+                          : heightVal
+                      }
+                      step={
+                        sizeUnit === "feet"
+                          ? 0.25
+                          : sizeUnit === "inches"
+                          ? 3
+                          : 1
+                      }
+                      onChange={(value) => {
+                        setHeightVal(value);
+                        handleSizeChange(widthVal, value);
+                      }}
+                      className="col-span-1"
+                    />
                     <div className="space-y-1">
-                      <label className="text-xs text-gray-500 dark:text-gray-400">
-                        Width
-                      </label>
-                      <input
-                        type="number"
-                        step={sizeUnit === "feet" ? 0.01 : 1}
-                        min={1}
-                        value={widthVal}
-                        onChange={(e) => {
-                          setWidthVal(e.target.value);
-                          handleSizeChange(e.target.value, heightVal);
-                        }}
-                        onBlur={handleSizeCommit}
-                        className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-gray-500 dark:text-gray-400">
-                        Height
-                      </label>
-                      <input
-                        type="number"
-                        step={sizeUnit === "feet" ? 0.01 : 1}
-                        min={1}
-                        value={heightVal}
-                        onChange={(e) => {
-                          setHeightVal(e.target.value);
-                          handleSizeChange(widthVal, e.target.value);
-                        }}
-                        onBlur={handleSizeCommit}
-                        className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs text-gray-500 dark:text-gray-400">
+                      <label className="text-xs text-gray-600 dark:text-gray-300 mb-1 font-medium">
                         Units
                       </label>
                       <select
                         value={sizeUnit}
                         onChange={(e) => setSizeUnit(e.target.value as any)}
-                        className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                        className="w-full h-8 px-2 text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white/60 dark:bg-gray-800/60 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="blocks">Blocks</option>
                         <option value="inches">Inches</option>
@@ -868,62 +891,60 @@ export function ControlPanel() {
               </div>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2">
-              <div className="col-span-2 grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-600 dark:text-gray-300">
-                    Width
-                  </label>
-                  <input
-                    type="number"
-                    step={
-                      sizeUnit === "feet" ? 0.01 : sizeUnit === "inches" ? 1 : 1
-                    }
-                    min={1}
-                    value={widthVal}
-                    onChange={(e) => {
-                      setWidthVal(e.target.value);
-                      handleSizeChange(e.target.value, heightVal);
-                    }}
-                    onBlur={handleSizeCommit}
-                    className={`w-full rounded-md border bg-white/60 dark:bg-gray-800/60 px-2 py-1 text-sm focus:outline-none focus:ring-2 ${
-                      !validW && (isInches || isFeet)
-                        ? "border-amber-400 focus:ring-amber-500"
-                        : "border-gray-300 dark:border-gray-700 focus:ring-blue-500"
-                    }`}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-gray-600 dark:text-gray-300">
-                    Height
-                  </label>
-                  <input
-                    type="number"
-                    step={
-                      sizeUnit === "feet" ? 0.01 : sizeUnit === "inches" ? 1 : 1
-                    }
-                    min={1}
-                    value={heightVal}
-                    onChange={(e) => {
-                      setHeightVal(e.target.value);
-                      handleSizeChange(widthVal, e.target.value);
-                    }}
-                    onBlur={handleSizeCommit}
-                    className={`w-full rounded-md border bg-white/60 dark:bg-gray-800/60 px-2 py-1 text-sm focus:ring-2 ${
-                      !validH && (isInches || isFeet)
-                        ? "border-amber-400 focus:ring-amber-500"
-                        : "border-gray-300 dark:border-gray-700 focus:ring-blue-500"
-                    }`}
-                  />
-                </div>
-              </div>
+              <SizeSelector
+                label="Width"
+                min={1}
+                max={
+                  sizeUnit === "blocks"
+                    ? 50
+                    : sizeUnit === "inches"
+                    ? 150
+                    : 12.5
+                }
+                defaultValue={
+                  typeof widthVal === "string" ? parseFloat(widthVal) : widthVal
+                }
+                step={
+                  sizeUnit === "feet" ? 0.25 : sizeUnit === "inches" ? 3 : 1
+                }
+                onChange={(value) => {
+                  setWidthVal(value);
+                  handleSizeChange(value, heightVal);
+                }}
+                className="col-span-1"
+              />
+              <SizeSelector
+                label="Height"
+                min={1}
+                max={
+                  sizeUnit === "blocks"
+                    ? 50
+                    : sizeUnit === "inches"
+                    ? 150
+                    : 12.5
+                }
+                defaultValue={
+                  typeof heightVal === "string"
+                    ? parseFloat(heightVal)
+                    : heightVal
+                }
+                step={
+                  sizeUnit === "feet" ? 0.25 : sizeUnit === "inches" ? 3 : 1
+                }
+                onChange={(value) => {
+                  setHeightVal(value);
+                  handleSizeChange(widthVal, value);
+                }}
+                className="col-span-1"
+              />
               <div className="space-y-1">
-                <label className="text-xs text-gray-600 dark:text-gray-300">
+                <label className="text-xs text-gray-600 dark:text-gray-300 mb-1 font-medium">
                   Units
                 </label>
                 <select
                   value={sizeUnit}
                   onChange={(e) => setSizeUnit(e.target.value as any)}
-                  className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full h-8 rounded-md border border-gray-300 dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 px-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="blocks">Blocks</option>
                   <option value="inches">Inches</option>
