@@ -12,6 +12,26 @@ export type ColorPattern =
   | "fade"
   | "center-fade";
 
+// Valid color patterns for validation
+export const VALID_COLOR_PATTERNS: ColorPattern[] = [
+  "horizontal",
+  "vertical",
+  "diagonal",
+  "random",
+  "striped",
+  "gradient",
+  "checkerboard",
+  "fade",
+  "center-fade",
+];
+
+// Helper function to validate and normalize color patterns
+export function validateColorPattern(pattern: string): ColorPattern {
+  return VALID_COLOR_PATTERNS.includes(pattern as ColorPattern)
+    ? (pattern as ColorPattern)
+    : "fade";
+}
+
 export interface PatternProps {
   showColorInfo?: boolean;
   showWoodGrain?: boolean;
@@ -139,6 +159,9 @@ export function generateColorMap(
   selectedDesign: string,
   customPaletteLength: number
 ): ColorMapRef {
+  // Validate colorPattern and default to "fade" if unrecognized
+  const effectiveColorPattern = validateColorPattern(colorPattern);
+
   // Total number of blocks
   const totalBlocks = adjustedModelWidth * adjustedModelHeight;
 
@@ -154,9 +177,12 @@ export function generateColorMap(
       : "horizontal"
     : orientation;
 
-  console.log(colorPattern);
+  console.log(effectiveColorPattern);
 
-  if (colorPattern === "fade" || colorPattern === "center-fade") {
+  if (
+    effectiveColorPattern === "fade" ||
+    effectiveColorPattern === "center-fade"
+  ) {
     // For fade patterns, use the new column-based distribution approach
     const totalBlocks = adjustedModelWidth * adjustedModelHeight;
 
@@ -181,7 +207,7 @@ export function generateColorMap(
     let progressDirection: "horizontal" | "vertical";
     let isCenterFade = false;
 
-    if (colorPattern === "center-fade") {
+    if (effectiveColorPattern === "center-fade") {
       isCenterFade = true;
       progressDirection = effectiveOrientation;
     } else {
@@ -577,7 +603,7 @@ export function generateColorMap(
         }
       }
     }
-  } else if (colorPattern === "random") {
+  } else if (effectiveColorPattern === "random") {
     // For random pattern, distribute colors evenly but randomly
     const blocksPerColor = Math.floor(totalBlocks / colorEntries.length);
     const extraBlocks = totalBlocks % colorEntries.length;
@@ -607,7 +633,7 @@ export function generateColorMap(
       for (let y = 0; y < adjustedModelHeight; y++) {
         let colorIndex: number;
 
-        switch (colorPattern) {
+        switch (effectiveColorPattern) {
           case "striped":
             // Create stripes based on effective orientation
             if (effectiveOrientation === "horizontal") {
@@ -660,7 +686,7 @@ export function generateColorMap(
   });
 
   Object.defineProperty(colorMap, "colorPattern", {
-    value: colorPattern,
+    value: effectiveColorPattern,
     writable: true,
     configurable: true,
   });

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCustomStore } from "@/store/customStore";
 import DesignCanvas from "@/components/DesignCanvas";
@@ -19,9 +19,9 @@ interface SharedDesignData {
   accessCount: number;
 }
 
-// Separate component that uses useSearchParams
-function PreviewPageContent() {
+export default function PreviewPage() {
   const [mounted, setMounted] = useState(false);
+  const [shareId, setShareId] = useState<string | null>(null);
   const {
     viewSettings,
     backgroundColor,
@@ -33,8 +33,6 @@ function PreviewPageContent() {
   } = useCustomStore();
   const { showUIControls } = viewSettings;
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const shareId = searchParams.get("shareId");
 
   const [sharedDesign, setSharedDesign] = useState<SharedDesignData | null>(
     null
@@ -43,8 +41,14 @@ function PreviewPageContent() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Client-side only search params check
   useEffect(() => {
     setMounted(true);
+    // Only access search params on client side
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      setShareId(urlParams.get("shareId"));
+    }
 
     // Trigger resize event to ensure canvas renders correctly
     const resizeEvent = new Event("resize");
@@ -166,8 +170,8 @@ function PreviewPageContent() {
     >
       <Navbar />
 
-      {/* Shared Design Info Card */}
-      {sharedDesign && (
+      {/* Shared Design Info Card - only show if there's a shared design */}
+      {shareId && sharedDesign && (
         <div className="absolute top-20 left-6 z-40 max-w-sm">
           <Card className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 shadow-lg p-4">
             <div className="space-y-3">
@@ -267,26 +271,5 @@ function PreviewPageContent() {
         </div>
       )}
     </div>
-  );
-}
-
-// Loading fallback component
-function LoadingFallback() {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-      <div className="text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-600 dark:text-purple-400 mx-auto mb-4" />
-        <p className="text-gray-600 dark:text-gray-400">Loading...</p>
-      </div>
-    </div>
-  );
-}
-
-// Main page component with Suspense boundary
-export default function PreviewPage() {
-  return (
-    <Suspense fallback={<LoadingFallback />}>
-      <PreviewPageContent />
-    </Suspense>
   );
 }

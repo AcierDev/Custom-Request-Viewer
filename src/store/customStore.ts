@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Dimensions, ItemDesigns } from "@/typings/types";
-import { ColorPattern } from "@/lib/patternUtils";
+import { ColorPattern, validateColorPattern } from "@/lib/patternUtils";
 
 // Add types for hover state
 export interface HoverInfo {
@@ -104,7 +104,7 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
   dimensions: { width: 28, height: 12 }, // 28 blocks wide, 12 blocks tall
   selectedDesign: ItemDesigns.Coastal,
   sizeUnit: "blocks",
-  colorPattern: "horizontal",
+  colorPattern: "fade",
   orientation: "horizontal",
   isReversed: false,
   isRotated: false,
@@ -158,7 +158,8 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
     get().checkForChanges();
   },
   setColorPattern: (colorPattern) => {
-    set({ colorPattern });
+    const validatedPattern = validateColorPattern(colorPattern);
+    set({ colorPattern: validatedPattern });
     get().checkForChanges();
   },
   setOrientation: (orientation) => {
