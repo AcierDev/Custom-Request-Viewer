@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useCustomStore } from "@/store/customStore";
 import { getDimensionsDetails } from "@/lib/utils";
 import { useRef, useEffect, useState, useMemo, memo, useCallback } from "react";
@@ -248,7 +249,7 @@ export function GeometricPattern({
 
   // Memoize the block grid to prevent recreation on every render
   const blockGrid = useMemo(() => {
-    const blocks: JSX.Element[] = [];
+    const blocks: React.ReactElement[] = [];
     const currentGridWidth = adjustedModelWidth;
     const currentGridHeight = adjustedModelHeight;
 
