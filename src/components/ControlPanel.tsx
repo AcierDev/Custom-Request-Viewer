@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useCustomStore } from "@/store/customStore";
 import {
   Share2,
@@ -115,6 +115,20 @@ export function ControlPanel() {
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareId, setShareId] = useState("");
+  const [shareMessage, setShareMessage] = useState<{
+    type: "success" | "error" | "info";
+    text: string;
+  } | null>(null);
+  const showShareMessage = (
+    type: "success" | "error" | "info",
+    text: string,
+    timeoutMs = 3000
+  ) => {
+    setShareMessage({ type, text });
+    if (timeoutMs > 0) {
+      window.setTimeout(() => setShareMessage(null), timeoutMs);
+    }
+  };
   // Advanced Customization (shared design) toggle
   const [showAdvanced, setShowAdvanced] = useState(false);
   // Lighting advanced toggle (separate to avoid conflicts)
@@ -392,6 +406,7 @@ export function ControlPanel() {
 
   const handleGenerateLink = async () => {
     setIsGenerating(true);
+    setShareMessage(null);
 
     try {
       const result = await createSharedDesign();
@@ -399,13 +414,16 @@ export function ControlPanel() {
       if (result.success && result.shareUrl) {
         setShareableLink(result.shareUrl);
         setShareId(result.shareId || "");
-        alert("Share link generated successfully!");
+        showShareMessage("success", "Share link is ready.");
       } else {
-        alert(result.error || "Failed to create shared design");
+        showShareMessage(
+          "error",
+          result.error || "Failed to create shared design."
+        );
       }
     } catch (error) {
       console.error("Error generating link:", error);
-      alert("Failed to generate shareable link");
+      showShareMessage("error", "Failed to generate shareable link.");
     } finally {
       setIsGenerating(false);
     }
@@ -414,7 +432,7 @@ export function ControlPanel() {
   const handleCopyLink = () => {
     navigator.clipboard.writeText(shareableLink);
     setCopied(true);
-    alert("Link copied to clipboard!");
+    showShareMessage("success", "Link copied to clipboard.");
 
     setTimeout(() => {
       setCopied(false);
@@ -988,6 +1006,30 @@ export function ControlPanel() {
                 </p>
               </div>
             </div>
+
+            <AnimatePresence>
+              {shareMessage && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  className={`mt-3 flex items-center gap-2 rounded-md border px-2.5 py-2 text-xs ${
+                    shareMessage.type === "success"
+                      ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-300"
+                      : shareMessage.type === "error"
+                      ? "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300"
+                      : "border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300"
+                  }`}
+                >
+                  {shareMessage.type === "success" ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <AlertCircle className="h-3.5 w-3.5" />
+                  )}
+                  <span>{shareMessage.text}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {!shareableLink ? (
               <button
