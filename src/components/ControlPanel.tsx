@@ -3,7 +3,18 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useCustomStore } from "@/store/customStore";
-import { Share2, Copy, Check, Loader2 } from "lucide-react";
+import {
+  Share2,
+  Copy,
+  Check,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+  RotateCcw,
+  AlertCircle,
+} from "lucide-react";
+import { ItemDesigns } from "@/typings/types";
+import { getBackgroundColorForLighting } from "@/lib/utils";
 
 const WALL_PRESETS: Array<{ name: string; hex: string }> = [
   { name: "White", hex: "#ffffff" },
@@ -22,7 +33,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-type LightingPresetKey = "gallery" | "soft" | "contrast" | "cozy" | "sunlit";
+type LightingPresetKey = "gallery" | "contrast" | "cozy" | "sunlit";
 
 const LIGHTING_PRESETS: Record<
   LightingPresetKey,
@@ -42,14 +53,6 @@ const LIGHTING_PRESETS: Record<
     fill: 0.6,
     back: 0.3,
     rim: 0.5,
-  },
-  soft: {
-    label: "Soft Studio",
-    ambient: 1.2,
-    key: 0.8,
-    fill: 0.7,
-    back: 0.4,
-    rim: 0.4,
   },
   contrast: {
     label: "High Contrast",
@@ -90,12 +93,37 @@ export function ControlPanel() {
     viewSettings,
     setShowUIControls,
     createSharedDesign,
+    selectedDesign,
+    setSelectedDesign,
+    colorPattern,
+    setColorPattern,
+    orientation,
+    setOrientation,
+    isReversed,
+    setIsReversed,
+    isRotated,
+    setIsRotated,
+    useMini,
+    setUseMini,
+    originalSharedData,
+    hasChangesFromShared,
+    revertToSharedDesign,
   } = useCustomStore();
 
   const [shareableLink, setShareableLink] = useState("");
   const [copied, setCopied] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareId, setShareId] = useState("");
+  // Advanced Customization (shared design) toggle
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  // Lighting advanced toggle (separate to avoid conflicts)
+  const [showLightingAdvanced, setShowLightingAdvanced] = useState(false);
+  // Store the original background color to avoid recursive adjustments
+  const [originalBackgroundColor, setOriginalBackgroundColor] =
+    useState("#111827");
+
+  // Check if we're viewing a shared design
+  const isViewingSharedDesign = originalSharedData !== null;
 
   // Local derived values for size inputs
   const unitDimensions = useMemo(() => {
@@ -264,7 +292,6 @@ export function ControlPanel() {
     useState<LightingPresetKey>("gallery");
   const [brightness, setBrightness] = useState<number>(1);
   const [shadowContrast, setShadowContrast] = useState<number>(0.3);
-  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
 
   const applyLightingFromBase = (
     base: {
@@ -294,12 +321,26 @@ export function ControlPanel() {
       brightness,
       shadowContrast
     );
+
+    // Apply initial background color adjustment
+    const adjustedBackgroundColor = getBackgroundColorForLighting(
+      originalBackgroundColor,
+      selectedPreset
+    );
+    setBackgroundColor(adjustedBackgroundColor);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handlePresetClick = (key: LightingPresetKey) => {
     setSelectedPreset(key);
     applyLightingFromBase(LIGHTING_PRESETS[key], brightness, shadowContrast);
+
+    // Adjust background color based on lighting preset
+    const adjustedBackgroundColor = getBackgroundColorForLighting(
+      originalBackgroundColor,
+      key
+    );
+    setBackgroundColor(adjustedBackgroundColor);
   };
 
   const handleBrightnessChange = (val: number) => {
@@ -309,11 +350,43 @@ export function ControlPanel() {
       val,
       shadowContrast
     );
+
+    // Re-apply background color adjustment for current preset
+    const adjustedBackgroundColor = getBackgroundColorForLighting(
+      originalBackgroundColor,
+      selectedPreset
+    );
+    setBackgroundColor(adjustedBackgroundColor);
   };
 
   const handleShadowsChange = (val: number) => {
     setShadowContrast(val);
     applyLightingFromBase(LIGHTING_PRESETS[selectedPreset], brightness, val);
+
+    // Re-apply background color adjustment for current preset
+    const adjustedBackgroundColor = getBackgroundColorForLighting(
+      originalBackgroundColor,
+      selectedPreset
+    );
+    setBackgroundColor(adjustedBackgroundColor);
+  };
+
+  const handleWallPresetClick = (hex: string) => {
+    setOriginalBackgroundColor(hex);
+    const adjustedBackgroundColor = getBackgroundColorForLighting(
+      hex,
+      selectedPreset
+    );
+    setBackgroundColor(adjustedBackgroundColor);
+  };
+
+  const handleCustomColorChange = (hex: string) => {
+    setOriginalBackgroundColor(hex);
+    const adjustedBackgroundColor = getBackgroundColorForLighting(
+      hex,
+      selectedPreset
+    );
+    setBackgroundColor(adjustedBackgroundColor);
   };
 
   const handleGenerateLink = async () => {
@@ -352,9 +425,9 @@ export function ControlPanel() {
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.2 }}
-      className="absolute top-4 right-4 z-50 w-[360px] max-w-[94vw] rounded-2xl border border-gray-200/70 dark:border-gray-700/70 bg-white/75 dark:bg-gray-900/75 backdrop-blur-xl shadow-xl"
+      className="absolute top-4 right-4 z-50 w-[360px] max-w-[94vw] max-h-[92vh] rounded-2xl border border-gray-200/70 dark:border-gray-700/70 bg-white/75 dark:bg-gray-900/75 backdrop-blur-xl shadow-xl overflow-hidden flex flex-col"
     >
-      <div className="p-4 space-y-5">
+      <div className="p-4 space-y-5 overflow-y-auto">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Scene Settings
@@ -367,6 +440,269 @@ export function ControlPanel() {
             Hide
           </button>
         </div>
+
+        {/* Status and Revert Section (only shown when viewing shared design) */}
+        {isViewingSharedDesign && (
+          <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/70 dark:bg-gray-900/70 shadow-sm p-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {hasChangesFromShared ? (
+                  <>
+                    <AlertCircle className="w-4 h-4 text-amber-500" />
+                    <div>
+                      <h3 className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                        Design Modified
+                      </h3>
+                      <p className="text-xs text-amber-600 dark:text-amber-500">
+                        You've made changes to the shared design.
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 text-green-500" />
+                    <div>
+                      <h3 className="text-sm font-semibold text-green-700 dark:text-green-400">
+                        Original Design
+                      </h3>
+                      <p className="text-xs text-green-600 dark:text-green-500">
+                        Viewing the design as shared.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+              {hasChangesFromShared && (
+                <button
+                  onClick={revertToSharedDesign}
+                  className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  Revert
+                </button>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* Advanced Customization Section */}
+        {isViewingSharedDesign && (
+          <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/70 dark:bg-gray-900/70 shadow-sm p-3">
+            <button
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="w-full flex items-center justify-between text-sm font-semibold text-gray-900 dark:text-gray-100 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+            >
+              <div className="text-left">
+                <h3>Advanced Customization</h3>
+                <p className="text-xs text-gray-600 dark:text-gray-400 font-normal">
+                  Modify design, size, and pattern settings.
+                </p>
+              </div>
+              {showAdvanced ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </button>
+
+            {showAdvanced && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="mt-4 space-y-4"
+              >
+                {/* Design Selector */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Design
+                  </label>
+                  <select
+                    value={selectedDesign}
+                    onChange={(e) =>
+                      setSelectedDesign(e.target.value as ItemDesigns)
+                    }
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  >
+                    {Object.values(ItemDesigns)
+                      .filter((design) => design !== ItemDesigns.Custom)
+                      .map((design) => (
+                        <option key={design} value={design}>
+                          {design}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                {/* Pattern Controls */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Pattern
+                  </label>
+                  <select
+                    value={colorPattern}
+                    onChange={(e) => setColorPattern(e.target.value as any)}
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  >
+                    <option value="horizontal">Horizontal</option>
+                    <option value="vertical">Vertical</option>
+                    <option value="fade">Fade</option>
+                    <option value="gradient">Gradient</option>
+                    <option value="diagonal">Diagonal</option>
+                    <option value="striped">Striped</option>
+                    <option value="checkerboard">Checkerboard</option>
+                    <option value="center-fade">Center Fade</option>
+                    <option value="random">Random</option>
+                  </select>
+                </div>
+
+                {/* Orientation and Options */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Orientation
+                    </label>
+                    <select
+                      value={orientation}
+                      onChange={(e) => setOrientation(e.target.value as any)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    >
+                      <option value="horizontal">Horizontal</option>
+                      <option value="vertical">Vertical</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
+                      Options
+                    </label>
+                    <div className="space-y-1">
+                      <label className="flex items-center text-xs">
+                        <input
+                          type="checkbox"
+                          checked={isReversed}
+                          onChange={(e) => setIsReversed(e.target.checked)}
+                          className="mr-2"
+                        />
+                        Reversed
+                      </label>
+                      <label className="flex items-center text-xs">
+                        <input
+                          type="checkbox"
+                          checked={isRotated}
+                          onChange={(e) => setIsRotated(e.target.checked)}
+                          className="mr-2"
+                        />
+                        Rotated
+                      </label>
+                      <label className="flex items-center text-xs">
+                        <input
+                          type="checkbox"
+                          checked={useMini}
+                          onChange={(e) => setUseMini(e.target.checked)}
+                          className="mr-2"
+                        />
+                        Mini
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Size Controls */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Size
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-xs text-gray-500 dark:text-gray-400">
+                        Width
+                      </label>
+                      <input
+                        type="number"
+                        step={sizeUnit === "feet" ? 0.01 : 1}
+                        min={1}
+                        value={widthVal}
+                        onChange={(e) => {
+                          setWidthVal(e.target.value);
+                          handleSizeChange(e.target.value, heightVal);
+                        }}
+                        onBlur={handleSizeCommit}
+                        className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-gray-500 dark:text-gray-400">
+                        Height
+                      </label>
+                      <input
+                        type="number"
+                        step={sizeUnit === "feet" ? 0.01 : 1}
+                        min={1}
+                        value={heightVal}
+                        onChange={(e) => {
+                          setHeightVal(e.target.value);
+                          handleSizeChange(widthVal, e.target.value);
+                        }}
+                        onBlur={handleSizeCommit}
+                        className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-gray-500 dark:text-gray-400">
+                        Units
+                      </label>
+                      <select
+                        value={sizeUnit}
+                        onChange={(e) => setSizeUnit(e.target.value as any)}
+                        className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                      >
+                        <option value="blocks">Blocks</option>
+                        <option value="inches">Inches</option>
+                        <option value="feet">Feet</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </section>
+        )}
+
+        {/* Standard Design Selector (only shown when NOT viewing shared design) */}
+        {!isViewingSharedDesign && (
+          <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/70 dark:bg-gray-900/70 shadow-sm p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  Design
+                </h3>
+                <p className="text-xs text-gray-600 dark:text-gray-300">
+                  Select an official design pattern.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3">
+              <select
+                value={selectedDesign}
+                onChange={(e) =>
+                  setSelectedDesign(e.target.value as ItemDesigns)
+                }
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              >
+                {Object.values(ItemDesigns)
+                  .filter((design) => design !== ItemDesigns.Custom)
+                  .map((design) => (
+                    <option key={design} value={design}>
+                      {design}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </section>
+        )}
+
         {/* Background Card */}
         <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/70 dark:bg-gray-900/70 shadow-sm p-3">
           <div className="flex items-center justify-between">
@@ -384,9 +720,9 @@ export function ControlPanel() {
               <button
                 key={c.hex}
                 title={c.name}
-                onClick={() => setBackgroundColor(c.hex)}
+                onClick={() => handleWallPresetClick(c.hex)}
                 className={`h-7 w-7 rounded-md border transition ring-offset-2 ${
-                  backgroundColor.toLowerCase() === c.hex.toLowerCase()
+                  originalBackgroundColor.toLowerCase() === c.hex.toLowerCase()
                     ? "ring-2 ring-blue-500 ring-offset-white dark:ring-offset-gray-900"
                     : "border-gray-300 dark:border-gray-700"
                 }`}
@@ -398,8 +734,8 @@ export function ControlPanel() {
               <input
                 aria-label="Custom background color"
                 type="color"
-                value={backgroundColor}
-                onChange={(e) => setBackgroundColor(e.target.value)}
+                value={originalBackgroundColor}
+                onChange={(e) => handleCustomColorChange(e.target.value)}
                 className="h-7 w-10 p-0 border rounded cursor-pointer bg-transparent"
               />
             </label>
@@ -481,12 +817,22 @@ export function ControlPanel() {
           {/* Advanced */}
           <div className="mt-3">
             <button
-              onClick={() => setShowAdvanced((v) => !v)}
-              className="text-xs underline text-gray-600 dark:text-gray-300"
+              onClick={() => setShowLightingAdvanced((v) => !v)}
+              className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
             >
-              {showAdvanced ? "Hide advanced" : "Show advanced"}
+              {showLightingAdvanced ? (
+                <>
+                  <ChevronUp className="w-3 h-3" />
+                  Hide advanced
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-3 h-3" />
+                  Show advanced
+                </>
+              )}
             </button>
-            {showAdvanced && (
+            {showLightingAdvanced && (
               <div className="mt-3 space-y-3">
                 {intensitySlider("Ambient", lighting.ambientIntensity, (n) =>
                   setLighting({ ambientIntensity: n })
@@ -508,174 +854,178 @@ export function ControlPanel() {
           </div>
         </section>
 
-        {/* Size Card */}
-        <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/70 dark:bg-gray-900/70 shadow-sm p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                Size
-              </h3>
-              <p className="text-xs text-gray-600 dark:text-gray-300">
-                Enter your art size in blocks, inches, or feet.
-              </p>
-            </div>
-          </div>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            <div className="col-span-2 grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <label className="text-xs text-gray-600 dark:text-gray-300">
-                  Width
-                </label>
-                <input
-                  type="number"
-                  step={
-                    sizeUnit === "feet" ? 0.01 : sizeUnit === "inches" ? 1 : 1
-                  }
-                  min={1}
-                  value={widthVal}
-                  onChange={(e) => {
-                    setWidthVal(e.target.value);
-                    handleSizeChange(e.target.value, heightVal);
-                  }}
-                  onBlur={handleSizeCommit}
-                  className={`w-full rounded-md border bg-white/60 dark:bg-gray-800/60 px-2 py-1 text-sm focus:outline-none focus:ring-2 ${
-                    !validW && (isInches || isFeet)
-                      ? "border-amber-400 focus:ring-amber-500"
-                      : "border-gray-300 dark:border-gray-700 focus:ring-blue-500"
-                  }`}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs text-gray-600 dark:text-gray-300">
-                  Height
-                </label>
-                <input
-                  type="number"
-                  step={
-                    sizeUnit === "feet" ? 0.01 : sizeUnit === "inches" ? 1 : 1
-                  }
-                  min={1}
-                  value={heightVal}
-                  onChange={(e) => {
-                    setHeightVal(e.target.value);
-                    handleSizeChange(widthVal, e.target.value);
-                  }}
-                  onBlur={handleSizeCommit}
-                  className={`w-full rounded-md border bg-white/60 dark:bg-gray-800/60 px-2 py-1 text-sm focus:ring-2 ${
-                    !validH && (isInches || isFeet)
-                      ? "border-amber-400 focus:ring-amber-500"
-                      : "border-gray-300 dark:border-gray-700 focus:ring-blue-500"
-                  }`}
-                />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs text-gray-600 dark:text-gray-300">
-                Units
-              </label>
-              <select
-                value={sizeUnit}
-                onChange={(e) => setSizeUnit(e.target.value as any)}
-                className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="blocks">Blocks</option>
-                <option value="inches">Inches</option>
-                <option value="feet">Feet</option>
-              </select>
-            </div>
-          </div>
-          {anyInvalid && (
-            <div className="mt-2 rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-200">
-              <div className="flex items-center justify-between gap-2">
-                <p>
-                  Each block equals 3 inches. Please use{" "}
-                  {isFeet ? "0.25 ft" : "3 inch"} increments.
+        {/* Size Card (only shown when NOT viewing shared design) */}
+        {!isViewingSharedDesign && (
+          <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/70 dark:bg-gray-900/70 shadow-sm p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  Size
+                </h3>
+                <p className="text-xs text-gray-600 dark:text-gray-300">
+                  Enter your art size in blocks, inches, or feet.
                 </p>
-                <button
-                  type="button"
-                  onClick={snapToNearest}
-                  className="shrink-0 rounded border border-amber-300/80 px-2 py-0.5 text-[10px] font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30"
-                >
-                  Snap
-                </button>
               </div>
             </div>
-          )}
-          <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-            1 block = 3 inches.
-          </p>
-        </section>
-
-        {/* Share Card */}
-        <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/70 dark:bg-gray-900/70 shadow-sm p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                Share Design
-              </h3>
-              <p className="text-xs text-gray-600 dark:text-gray-300">
-                Create a shareable link for your current design.
-              </p>
-            </div>
-          </div>
-
-          {!shareableLink ? (
-            <button
-              onClick={handleGenerateLink}
-              disabled={isGenerating}
-              className="mt-3 w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
-                  Generating Link...
-                </>
-              ) : (
-                <>
-                  <Share2 className="mr-2 h-4 w-4 inline" />
-                  Generate Shareable Link
-                </>
-              )}
-            </button>
-          ) : (
-            <div className="mt-3 space-y-2">
-              {shareId && (
-                <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 rounded">
-                  Share ID: {shareId}
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="col-span-2 grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs text-gray-600 dark:text-gray-300">
+                    Width
+                  </label>
+                  <input
+                    type="number"
+                    step={
+                      sizeUnit === "feet" ? 0.01 : sizeUnit === "inches" ? 1 : 1
+                    }
+                    min={1}
+                    value={widthVal}
+                    onChange={(e) => {
+                      setWidthVal(e.target.value);
+                      handleSizeChange(e.target.value, heightVal);
+                    }}
+                    onBlur={handleSizeCommit}
+                    className={`w-full rounded-md border bg-white/60 dark:bg-gray-800/60 px-2 py-1 text-sm focus:outline-none focus:ring-2 ${
+                      !validW && (isInches || isFeet)
+                        ? "border-amber-400 focus:ring-amber-500"
+                        : "border-gray-300 dark:border-gray-700 focus:ring-blue-500"
+                    }`}
+                  />
                 </div>
-              )}
-
-              <div className="flex items-center gap-2">
-                <input
-                  value={shareableLink}
-                  readOnly
-                  className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-xs"
-                />
-                <button
-                  onClick={handleCopyLink}
-                  className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                    copied
-                      ? "bg-green-600 hover:bg-green-700 text-white"
-                      : "bg-blue-600 hover:bg-blue-700 text-white"
-                  }`}
-                >
-                  {copied ? (
-                    <Check className="h-3 w-3" />
-                  ) : (
-                    <Copy className="h-3 w-3" />
-                  )}
-                </button>
+                <div className="space-y-1">
+                  <label className="text-xs text-gray-600 dark:text-gray-300">
+                    Height
+                  </label>
+                  <input
+                    type="number"
+                    step={
+                      sizeUnit === "feet" ? 0.01 : sizeUnit === "inches" ? 1 : 1
+                    }
+                    min={1}
+                    value={heightVal}
+                    onChange={(e) => {
+                      setHeightVal(e.target.value);
+                      handleSizeChange(widthVal, e.target.value);
+                    }}
+                    onBlur={handleSizeCommit}
+                    className={`w-full rounded-md border bg-white/60 dark:bg-gray-800/60 px-2 py-1 text-sm focus:ring-2 ${
+                      !validH && (isInches || isFeet)
+                        ? "border-amber-400 focus:ring-amber-500"
+                        : "border-gray-300 dark:border-gray-700 focus:ring-blue-500"
+                    }`}
+                  />
+                </div>
               </div>
+              <div className="space-y-1">
+                <label className="text-xs text-gray-600 dark:text-gray-300">
+                  Units
+                </label>
+                <select
+                  value={sizeUnit}
+                  onChange={(e) => setSizeUnit(e.target.value as any)}
+                  className="w-full rounded-md border border-gray-300 dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="blocks">Blocks</option>
+                  <option value="inches">Inches</option>
+                  <option value="feet">Feet</option>
+                </select>
+              </div>
+            </div>
+            {anyInvalid && (
+              <div className="mt-2 rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-200">
+                <div className="flex items-center justify-between gap-2">
+                  <p>
+                    Each block equals 3 inches. Please use{" "}
+                    {isFeet ? "0.25 ft" : "3 inch"} increments.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={snapToNearest}
+                    className="shrink-0 rounded border border-amber-300/80 px-2 py-0.5 text-[10px] font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                  >
+                    Snap
+                  </button>
+                </div>
+              </div>
+            )}
+            <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
+              1 block = 3 inches.
+            </p>
+          </section>
+        )}
 
+        {/* Share Card (only shown when changes have been made to shared design or not viewing shared design) */}
+        {(!isViewingSharedDesign || hasChangesFromShared) && (
+          <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/70 dark:bg-gray-900/70 shadow-sm p-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                  Share Design
+                </h3>
+                <p className="text-xs text-gray-600 dark:text-gray-300">
+                  Create a shareable link for your current design.
+                </p>
+              </div>
+            </div>
+
+            {!shareableLink ? (
               <button
                 onClick={handleGenerateLink}
-                className="w-full text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                disabled={isGenerating}
+                className="mt-3 w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50"
               >
-                Generate New Link
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
+                    Generating Link...
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="mr-2 h-4 w-4 inline" />
+                    Generate Shareable Link
+                  </>
+                )}
               </button>
-            </div>
-          )}
-        </section>
+            ) : (
+              <div className="mt-3 space-y-2">
+                {shareId && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                    Share ID: {shareId}
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <input
+                    value={shareableLink}
+                    readOnly
+                    className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-xs"
+                  />
+                  <button
+                    onClick={handleCopyLink}
+                    className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                      copied
+                        ? "bg-green-600 hover:bg-green-700 text-white"
+                        : "bg-blue-600 hover:bg-blue-700 text-white"
+                    }`}
+                  >
+                    {copied ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleGenerateLink}
+                  className="w-full text-xs text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                >
+                  Generate New Link
+                </button>
+              </div>
+            )}
+          </section>
+        )}
       </div>
     </motion.aside>
   );

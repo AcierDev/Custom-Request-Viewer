@@ -57,12 +57,14 @@ export function GeometricPattern({
   const details = getDimensionsDetails(dimensions);
 
   // Create refs for rotation seeds
-  const rotationSeedsRef = useRef<boolean[][]>();
+  const rotationSeedsRef = useRef<boolean[][] | undefined>(undefined);
   // Create refs for texture variations
-  const textureVariationsRef = useRef<TextureVariation[][]>();
+  const textureVariationsRef = useRef<TextureVariation[][] | undefined>(
+    undefined
+  );
 
   // Create a pre-calculated color map for perfect distribution
-  const colorMapRef = useRef<ColorMapRef | undefined>();
+  const colorMapRef = useRef<ColorMapRef | undefined>(undefined);
 
   // Force colorMapRef to reset when design or custom palette changes
   useEffect(() => {

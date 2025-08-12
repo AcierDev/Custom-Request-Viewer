@@ -65,6 +65,10 @@ interface CustomStore {
   // Custom palette
   customPalette: Array<{ hex: string; name?: string }>;
 
+  // Shared design tracking
+  originalSharedData: any | null;
+  hasChangesFromShared: boolean;
+
   // Actions
   setDimensions: (dimensions: Dimensions) => void;
   setDimensionsByUnit: (width: number, height: number, unit: SizeUnit) => void;
@@ -90,6 +94,9 @@ interface CustomStore {
   }>;
   loadFromShareableData: (data: string) => boolean;
   loadFromDatabaseData: (designData: any) => boolean;
+  setOriginalSharedData: (data: any) => void;
+  revertToSharedDesign: () => void;
+  checkForChanges: () => void;
 }
 
 export const useCustomStore = create<CustomStore>((set, get) => ({
@@ -109,7 +116,7 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
     showUIControls: true,
     showSplitPanel: false,
   },
-  backgroundColor: "#faf7f2", // Tailwind gray-100
+  backgroundColor: "#111827", // Tailwind gray-100
   lighting: {
     ambientIntensity: 1,
     keyIntensity: 0.7,
@@ -118,9 +125,14 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
     rimIntensity: 0.5,
   },
   customPalette: [],
+  originalSharedData: null,
+  hasChangesFromShared: false,
 
   // Actions
-  setDimensions: (dimensions) => set({ dimensions }),
+  setDimensions: (dimensions) => {
+    set({ dimensions });
+    get().checkForChanges();
+  },
   setDimensionsByUnit: (width, height, unit) =>
     set(() => {
       // Convert provided units back to blocks for storage
@@ -138,14 +150,33 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
       // Clamp to minimums
       blocksW = Math.max(1, Math.round(blocksW));
       blocksH = Math.max(1, Math.round(blocksH));
+      get().checkForChanges();
       return { dimensions: { width: blocksW, height: blocksH } };
     }),
-  setSelectedDesign: (selectedDesign) => set({ selectedDesign }),
-  setColorPattern: (colorPattern) => set({ colorPattern }),
-  setOrientation: (orientation) => set({ orientation }),
-  setIsReversed: (isReversed) => set({ isReversed }),
-  setIsRotated: (isRotated) => set({ isRotated }),
-  setUseMini: (useMini) => set({ useMini }),
+  setSelectedDesign: (selectedDesign) => {
+    set({ selectedDesign });
+    get().checkForChanges();
+  },
+  setColorPattern: (colorPattern) => {
+    set({ colorPattern });
+    get().checkForChanges();
+  },
+  setOrientation: (orientation) => {
+    set({ orientation });
+    get().checkForChanges();
+  },
+  setIsReversed: (isReversed) => {
+    set({ isReversed });
+    get().checkForChanges();
+  },
+  setIsRotated: (isRotated) => {
+    set({ isRotated });
+    get().checkForChanges();
+  },
+  setUseMini: (useMini) => {
+    set({ useMini });
+    get().checkForChanges();
+  },
   setShowUIControls: (show) =>
     set((state) => ({
       viewSettings: { ...state.viewSettings, showUIControls: show },
@@ -154,7 +185,10 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
   setLighting: (updater) =>
     set((state) => ({ lighting: { ...state.lighting, ...updater } })),
   setSizeUnit: (unit) => set({ sizeUnit: unit }),
-  setCustomPalette: (customPalette) => set({ customPalette }),
+  setCustomPalette: (customPalette) => {
+    set({ customPalette });
+    get().checkForChanges();
+  },
   createSharedDesign: async (userId?: string, email?: string) => {
     const state = get();
 
@@ -237,9 +271,11 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
         colorPattern: designData.colorPattern,
         orientation: designData.orientation,
         isReversed: designData.isReversed,
-        customPalette: designData.customPalette,
+        customPalette: designData.customPalette || [],
         isRotated: designData.isRotated,
         useMini: designData.useMini,
+        originalSharedData: { ...designData },
+        hasChangesFromShared: false,
       });
 
       return true;
@@ -247,5 +283,50 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
       console.error("Failed to load database data:", error);
       return false;
     }
+  },
+  setOriginalSharedData: (data) => {
+    set({
+      originalSharedData: data,
+      hasChangesFromShared: false,
+    });
+  },
+  revertToSharedDesign: () => {
+    const originalData = get().originalSharedData;
+    if (originalData) {
+      set({
+        dimensions: originalData.dimensions,
+        selectedDesign: originalData.selectedDesign,
+        colorPattern: originalData.colorPattern,
+        orientation: originalData.orientation,
+        isReversed: originalData.isReversed,
+        customPalette: originalData.customPalette || [],
+        isRotated: originalData.isRotated,
+        useMini: originalData.useMini,
+        hasChangesFromShared: false,
+      });
+    }
+  },
+  checkForChanges: () => {
+    const state = get();
+    const original = state.originalSharedData;
+
+    if (!original) {
+      set({ hasChangesFromShared: false });
+      return;
+    }
+
+    const hasChanges =
+      state.dimensions.width !== original.dimensions?.width ||
+      state.dimensions.height !== original.dimensions?.height ||
+      state.selectedDesign !== original.selectedDesign ||
+      state.colorPattern !== original.colorPattern ||
+      state.orientation !== original.orientation ||
+      state.isReversed !== original.isReversed ||
+      state.isRotated !== original.isRotated ||
+      state.useMini !== original.useMini ||
+      JSON.stringify(state.customPalette) !==
+        JSON.stringify(original.customPalette || []);
+
+    set({ hasChangesFromShared: hasChanges });
   },
 }));

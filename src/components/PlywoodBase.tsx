@@ -54,8 +54,8 @@ export const PlywoodBase = memo(function PlywoodBase({
     const totalWidth = adjustedModelWidth * blockSize * blockSpacing;
     const totalHeight = adjustedModelHeight * blockSize * blockSpacing;
 
-    const offsetX = 0.5 - totalWidth / 2 - 0.25 + (useMini ? 0.03 : 0);
-    const offsetY = 0.5 - totalHeight / 2 - 0.25 + (useMini ? 0.03 : 0);
+    const offsetX = -totalWidth / 2 - 0.25 + (useMini ? 0.03 : 0);
+    const offsetY = -totalHeight / 2 - 0.25 + (useMini ? 0.03 : 0);
 
     // Compute center position to align with the blocks grid
     const centerX =
@@ -92,22 +92,13 @@ export const PlywoodBase = memo(function PlywoodBase({
     let rightColor = "#8B5E3B";
 
     if (colorEntries.length > 0) {
-      if (colorPattern === "center-fade") {
-        // For center fade, both sides should be the same color
-        const endColor = isReversed
-          ? colorEntries[colorEntries.length - 1][1].hex
-          : colorEntries[0][1].hex;
-        leftColor = endColor;
-        rightColor = endColor;
+      // For all patterns, respect the reverse setting
+      if (isReversed) {
+        leftColor = colorEntries[colorEntries.length - 1][1].hex;
+        rightColor = colorEntries[0][1].hex;
       } else {
-        // For other patterns, respect the reverse setting
-        if (isReversed) {
-          leftColor = colorEntries[colorEntries.length - 1][1].hex;
-          rightColor = colorEntries[0][1].hex;
-        } else {
-          leftColor = colorEntries[0][1].hex;
-          rightColor = colorEntries[colorEntries.length - 1][1].hex;
-        }
+        leftColor = colorEntries[0][1].hex;
+        rightColor = colorEntries[colorEntries.length - 1][1].hex;
       }
     }
 
@@ -158,8 +149,8 @@ export const PlywoodBase = memo(function PlywoodBase({
       {/* Left side panel - colored */}
       <mesh
         position={[
-          (useMini ? 0.03 : 0) - 0.248 - totalWidth / 2 + 0.5,
-          (useMini ? 0.03 : 0) - 0.25 + 0.5,
+          (useMini ? 0.03 : 0) - 0.248 - totalWidth / 2,
+          (useMini ? 0.03 : 0) - 0.25,
           -0.035,
         ]}
         rotation={[0, Math.PI / 2, 0]}
@@ -179,8 +170,8 @@ export const PlywoodBase = memo(function PlywoodBase({
       {/* Right side panel - colored */}
       <mesh
         position={[
-          (useMini ? -0.47 : -0.5) + 0.248 + totalWidth / 2 + 0.001 + 0.5,
-          (useMini ? 0.03 : 0) - 0.25 + 0.5,
+          (useMini ? -0.47 : -0.5) + 0.248 + totalWidth / 2 + 0.001,
+          (useMini ? 0.03 : 0) - 0.25,
           -0.035,
         ]}
         rotation={[0, Math.PI / 2, 0]}
