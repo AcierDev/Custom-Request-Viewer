@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCustomStore } from "@/store/customStore";
 import DesignCanvas from "@/components/DesignCanvas";
@@ -19,7 +19,8 @@ interface SharedDesignData {
   accessCount: number;
 }
 
-export default function PreviewPage() {
+// Separate component that uses useSearchParams
+function PreviewPageContent() {
   const [mounted, setMounted] = useState(false);
   const {
     viewSettings,
@@ -266,5 +267,26 @@ export default function PreviewPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Loading fallback component
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="h-8 w-8 animate-spin text-purple-600 dark:text-purple-400 mx-auto mb-4" />
+        <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function PreviewPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <PreviewPageContent />
+    </Suspense>
   );
 }
