@@ -14,7 +14,7 @@ import { Loader2, ArrowLeft, Calendar, Eye, Copy, Check } from "lucide-react";
 
 interface SharedDesignData {
   shareId: string;
-  designData: any;
+  designData: Record<string, unknown>;
   createdAt: string;
   accessCount: number;
 }
@@ -214,7 +214,7 @@ export default function PreviewPage() {
                     Size:
                   </span>
                   <Badge variant="outline">
-                    {dimensions.width * 3}" × {dimensions.height * 3}"
+                    {dimensions.width * 3}&quot; × {dimensions.height * 3}&quot;
                   </Badge>
                 </div>
 
