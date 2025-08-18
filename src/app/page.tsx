@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCustomStore } from "@/store/customStore";
 import DesignCanvas from "@/components/DesignCanvas";
 import ControlPanel from "@/components/ControlPanel";
-import Navbar from "@/components/Navbar";
 import { ShareButton } from "@/components/ShareButton";
+import { PaletteDesignPrompt } from "@/components/PaletteDesignPrompt";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -168,8 +168,6 @@ export default function PreviewPage() {
       className="w-full h-screen relative"
       style={{ background: backgroundColor }}
     >
-      <Navbar />
-
       {/* Shared Design Info Card - only show if there's a shared design */}
       {shareId && sharedDesign && (
         <div className="absolute top-20 left-6 z-40 max-w-sm">
@@ -270,6 +268,9 @@ export default function PreviewPage() {
           </button>
         </div>
       )}
+
+      {/* Palette Design Prompt */}
+      {!shareId && <PaletteDesignPrompt />}
     </div>
   );
 }

@@ -135,7 +135,7 @@ export function ControlPanel() {
   const [showLightingAdvanced, setShowLightingAdvanced] = useState(false);
   // Store the original background color to avoid recursive adjustments
   const [originalBackgroundColor, setOriginalBackgroundColor] =
-    useState("#111827");
+    useState("#374151");
 
   // Check if we're viewing a shared design
   const isViewingSharedDesign = originalSharedData !== null;
@@ -165,21 +165,6 @@ export function ControlPanel() {
     setHeightVal(unitDimensions.h);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unitDimensions.w, unitDimensions.h, sizeUnit]);
-
-  const commitSize = (w: number, h: number) => {
-    if (Number.isFinite(w) && Number.isFinite(h)) {
-      setDimensionsByUnit(w, h, sizeUnit);
-    }
-  };
-
-  // Apply size changes only on blur to avoid automatic snapping
-  const handleSizeCommit = () => {
-    const w = typeof widthVal === "string" ? parseFloat(widthVal) : widthVal;
-    const h = typeof heightVal === "string" ? parseFloat(heightVal) : heightVal;
-    if (Number.isFinite(w) && Number.isFinite(h) && w >= 1 && h >= 1) {
-      setDimensionsByUnit(w, h, sizeUnit);
-    }
-  };
 
   // Apply size changes immediately while typing, but prevent infinite loops
   const lastCommittedRef = useRef<{ w: number; h: number; unit: string }>({
@@ -710,37 +695,182 @@ export function ControlPanel() {
           </section>
         )}
 
-        {/* Standard Design Selector (only shown when NOT viewing shared design) */}
+        {/* Design Selector (only shown when NOT viewing shared design) */}
+        {!isViewingSharedDesign && (
+          <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/70 dark:bg-gray-900/70 shadow-sm p-3">
+            {selectedDesign === ItemDesigns.Custom ? (
+              // Custom Design UI
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-600 to-pink-600"></div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        Custom Design
+                      </h3>
+                      <p className="text-xs text-gray-600 dark:text-gray-300">
+                        Using your custom color palette.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 p-3 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border border-purple-200/50 dark:border-purple-700/50">
+                  <p className="text-xs text-purple-700 dark:text-purple-300 mb-3">
+                    Want to try a professional design instead? Choose from our
+                    curated collection below.
+                  </p>
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        setSelectedDesign(e.target.value as ItemDesigns);
+                      }
+                    }}
+                    className="w-full px-3 py-2 text-xs border border-purple-300 dark:border-purple-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="">Switch to official design...</option>
+                    {Object.values(ItemDesigns)
+                      .filter((design) => design !== ItemDesigns.Custom)
+                      .map((design) => (
+                        <option key={design} value={design}>
+                          {design}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+            ) : (
+              // Standard Design UI
+              <div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      Design
+                    </h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-300">
+                      Select an official design pattern.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <select
+                    value={selectedDesign}
+                    onChange={(e) =>
+                      setSelectedDesign(e.target.value as ItemDesigns)
+                    }
+                    className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                  >
+                    {Object.values(ItemDesigns)
+                      .filter((design) => design !== ItemDesigns.Custom)
+                      .map((design) => (
+                        <option key={design} value={design}>
+                          {design}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Size Card (moved to be under design controls) */}
         {!isViewingSharedDesign && (
           <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/70 dark:bg-gray-900/70 shadow-sm p-3">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  Design
+                  Size
                 </h3>
                 <p className="text-xs text-gray-600 dark:text-gray-300">
-                  Select an official design pattern.
+                  Enter your art size in blocks, inches, or feet.
                 </p>
               </div>
             </div>
-
-            <div className="mt-3">
-              <select
-                value={selectedDesign}
-                onChange={(e) =>
-                  setSelectedDesign(e.target.value as ItemDesigns)
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <SizeSelector
+                label="Width"
+                min={1}
+                max={
+                  sizeUnit === "blocks"
+                    ? 50
+                    : sizeUnit === "inches"
+                    ? 150
+                    : 12.5
                 }
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-              >
-                {Object.values(ItemDesigns)
-                  .filter((design) => design !== ItemDesigns.Custom)
-                  .map((design) => (
-                    <option key={design} value={design}>
-                      {design}
-                    </option>
-                  ))}
-              </select>
+                defaultValue={
+                  typeof widthVal === "string" ? parseFloat(widthVal) : widthVal
+                }
+                step={
+                  sizeUnit === "feet" ? 0.25 : sizeUnit === "inches" ? 3 : 1
+                }
+                onChange={(value) => {
+                  setWidthVal(value);
+                  handleSizeChange(value, heightVal);
+                }}
+                className="col-span-1"
+              />
+              <SizeSelector
+                label="Height"
+                min={1}
+                max={
+                  sizeUnit === "blocks"
+                    ? 50
+                    : sizeUnit === "inches"
+                    ? 150
+                    : 12.5
+                }
+                defaultValue={
+                  typeof heightVal === "string"
+                    ? parseFloat(heightVal)
+                    : heightVal
+                }
+                step={
+                  sizeUnit === "feet" ? 0.25 : sizeUnit === "inches" ? 3 : 1
+                }
+                onChange={(value) => {
+                  setHeightVal(value);
+                  handleSizeChange(widthVal, value);
+                }}
+                className="col-span-1"
+              />
+              <div className="space-y-1">
+                <label className="text-xs text-gray-600 dark:text-gray-300 mb-1 font-medium">
+                  Units
+                </label>
+                <select
+                  value={sizeUnit}
+                  onChange={(e) => setSizeUnit(e.target.value as any)}
+                  className="w-full h-8 rounded-md border border-gray-300 dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 px-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="blocks">Blocks</option>
+                  <option value="inches">Inches</option>
+                  <option value="feet">Feet</option>
+                </select>
+              </div>
             </div>
+            {anyInvalid && (
+              <div className="mt-2 rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-200">
+                <div className="flex items-center justify-between gap-2">
+                  <p>
+                    Each block equals 3 inches. Please use{" "}
+                    {isFeet ? "0.25 ft" : "3 inch"} increments.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={snapToNearest}
+                    className="shrink-0 rounded border border-amber-300/80 px-2 py-0.5 text-[10px] font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                  >
+                    Snap
+                  </button>
+                </div>
+              </div>
+            )}
+            <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
+              1 block = 3 inches.
+            </p>
           </section>
         )}
 
@@ -894,104 +1024,6 @@ export function ControlPanel() {
             )}
           </div>
         </section>
-
-        {/* Size Card (only shown when NOT viewing shared design) */}
-        {!isViewingSharedDesign && (
-          <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/70 dark:bg-gray-900/70 shadow-sm p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                  Size
-                </h3>
-                <p className="text-xs text-gray-600 dark:text-gray-300">
-                  Enter your art size in blocks, inches, or feet.
-                </p>
-              </div>
-            </div>
-            <div className="mt-3 grid grid-cols-3 gap-2">
-              <SizeSelector
-                label="Width"
-                min={1}
-                max={
-                  sizeUnit === "blocks"
-                    ? 50
-                    : sizeUnit === "inches"
-                    ? 150
-                    : 12.5
-                }
-                defaultValue={
-                  typeof widthVal === "string" ? parseFloat(widthVal) : widthVal
-                }
-                step={
-                  sizeUnit === "feet" ? 0.25 : sizeUnit === "inches" ? 3 : 1
-                }
-                onChange={(value) => {
-                  setWidthVal(value);
-                  handleSizeChange(value, heightVal);
-                }}
-                className="col-span-1"
-              />
-              <SizeSelector
-                label="Height"
-                min={1}
-                max={
-                  sizeUnit === "blocks"
-                    ? 50
-                    : sizeUnit === "inches"
-                    ? 150
-                    : 12.5
-                }
-                defaultValue={
-                  typeof heightVal === "string"
-                    ? parseFloat(heightVal)
-                    : heightVal
-                }
-                step={
-                  sizeUnit === "feet" ? 0.25 : sizeUnit === "inches" ? 3 : 1
-                }
-                onChange={(value) => {
-                  setHeightVal(value);
-                  handleSizeChange(widthVal, value);
-                }}
-                className="col-span-1"
-              />
-              <div className="space-y-1">
-                <label className="text-xs text-gray-600 dark:text-gray-300 mb-1 font-medium">
-                  Units
-                </label>
-                <select
-                  value={sizeUnit}
-                  onChange={(e) => setSizeUnit(e.target.value as any)}
-                  className="w-full h-8 rounded-md border border-gray-300 dark:border-gray-700 bg-white/60 dark:bg-gray-800/60 px-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="blocks">Blocks</option>
-                  <option value="inches">Inches</option>
-                  <option value="feet">Feet</option>
-                </select>
-              </div>
-            </div>
-            {anyInvalid && (
-              <div className="mt-2 rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-200">
-                <div className="flex items-center justify-between gap-2">
-                  <p>
-                    Each block equals 3 inches. Please use{" "}
-                    {isFeet ? "0.25 ft" : "3 inch"} increments.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={snapToNearest}
-                    className="shrink-0 rounded border border-amber-300/80 px-2 py-0.5 text-[10px] font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30"
-                  >
-                    Snap
-                  </button>
-                </div>
-              </div>
-            )}
-            <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-              1 block = 3 inches.
-            </p>
-          </section>
-        )}
 
         {/* Share Card (only shown when changes have been made to shared design or not viewing shared design) */}
         {(!isViewingSharedDesign || hasChangesFromShared) && (
