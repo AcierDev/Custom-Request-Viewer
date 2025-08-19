@@ -2,6 +2,48 @@ import { create } from "zustand";
 import { Dimensions, ItemDesigns } from "@/typings/types";
 import { ColorPattern, validateColorPattern } from "@/lib/patternUtils";
 
+// Palette creation types
+export interface CustomColor {
+  hex: string;
+  name?: string;
+}
+
+export interface SavedPalette {
+  id: string;
+  name: string;
+  colors: CustomColor[];
+  createdAt: string;
+  isPublic?: boolean;
+}
+
+export interface PaletteCreationState {
+  currentStage: "choice" | "official" | "custom" | "preview" | "save";
+  selectedOfficialDesign?: ItemDesigns;
+  customPalette: CustomColor[];
+  selectedColors: string[];
+  paletteName: string;
+  savedPalettes: SavedPalette[];
+}
+
+type PaletteCreationStore = {
+  // Palette creation state
+  paletteCreation: PaletteCreationState;
+
+  // Actions
+  setPaletteStage: (stage: PaletteCreationState["currentStage"]) => void;
+  setSelectedOfficialDesign: (design: ItemDesigns) => void;
+  addCustomColor: (hex: string, name?: string) => void;
+  removeCustomColor: (index: number) => void;
+  updateCustomColor: (index: number, hex: string, name?: string) => void;
+  toggleColorSelection: (hex: string) => void;
+  clearColorSelection: () => void;
+  setPaletteName: (name: string) => void;
+  savePalette: () => void;
+  loadPalette: (palette: SavedPalette) => void;
+  deletePalette: (id: string) => void;
+  resetPaletteCreation: () => void;
+};
+
 // Add types for hover state
 export interface HoverInfo {
   position: [number, number];
@@ -42,7 +84,7 @@ interface LightingSettings {
   rimIntensity: number;
 }
 
-interface CustomStore {
+interface CustomStore extends PaletteCreationStore {
   // Dimensions and design
   dimensions: Dimensions;
   selectedDesign: ItemDesigns;
@@ -62,7 +104,7 @@ interface CustomStore {
   backgroundColor: string;
   lighting: LightingSettings;
 
-  // Custom palette
+  // Custom palette (keeping for backward compatibility)
   customPalette: Array<{ hex: string; name?: string }>;
 
   // Shared design tracking
@@ -116,7 +158,7 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
     showUIControls: true,
     showSplitPanel: false,
   },
-  backgroundColor: "#111827", // Tailwind gray-100
+  backgroundColor: "#374151", // Tailwind gray-100
   lighting: {
     ambientIntensity: 1,
     keyIntensity: 0.7,
@@ -127,6 +169,15 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
   customPalette: [],
   originalSharedData: null,
   hasChangesFromShared: false,
+
+  // Palette creation initial state
+  paletteCreation: {
+    currentStage: "choice",
+    customPalette: [],
+    selectedColors: [],
+    paletteName: "",
+    savedPalettes: [],
+  },
 
   // Actions
   setDimensions: (dimensions) => {
@@ -330,4 +381,150 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
 
     set({ hasChangesFromShared: hasChanges });
   },
+
+  // Palette creation actions
+  setPaletteStage: (stage) =>
+    set((state) => ({
+      paletteCreation: { ...state.paletteCreation, currentStage: stage },
+    })),
+
+  setSelectedOfficialDesign: (design) =>
+    set((state) => ({
+      paletteCreation: {
+        ...state.paletteCreation,
+        selectedOfficialDesign: design,
+      },
+    })),
+
+  addCustomColor: (hex, name = "") =>
+    set((state) => ({
+      paletteCreation: {
+        ...state.paletteCreation,
+        customPalette: [...state.paletteCreation.customPalette, { hex, name }],
+      },
+    })),
+
+  removeCustomColor: (index) =>
+    set((state) => ({
+      paletteCreation: {
+        ...state.paletteCreation,
+        customPalette: state.paletteCreation.customPalette.filter(
+          (_, i) => i !== index
+        ),
+        selectedColors: state.paletteCreation.selectedColors.filter(
+          (color) => color !== state.paletteCreation.customPalette[index]?.hex
+        ),
+      },
+    })),
+
+  updateCustomColor: (index, hex, name = "") =>
+    set((state) => {
+      const newPalette = [...state.paletteCreation.customPalette];
+      if (newPalette[index]) {
+        newPalette[index] = { hex, name };
+      }
+      return {
+        paletteCreation: {
+          ...state.paletteCreation,
+          customPalette: newPalette,
+        },
+      };
+    }),
+
+  toggleColorSelection: (hex) =>
+    set((state) => {
+      const selectedColors = state.paletteCreation.selectedColors.includes(hex)
+        ? state.paletteCreation.selectedColors.filter((color) => color !== hex)
+        : [...state.paletteCreation.selectedColors, hex];
+
+      return {
+        paletteCreation: {
+          ...state.paletteCreation,
+          selectedColors,
+        },
+      };
+    }),
+
+  clearColorSelection: () =>
+    set((state) => ({
+      paletteCreation: {
+        ...state.paletteCreation,
+        selectedColors: [],
+      },
+    })),
+
+  setPaletteName: (name) =>
+    set((state) => ({
+      paletteCreation: { ...state.paletteCreation, paletteName: name },
+    })),
+
+  savePalette: () => {
+    const state = get();
+    const { customPalette, paletteName } = state.paletteCreation;
+
+    if (customPalette.length === 0 || !paletteName.trim()) return;
+
+    const newPalette: SavedPalette = {
+      id: Date.now().toString(),
+      name: paletteName.trim(),
+      colors: customPalette,
+      createdAt: new Date().toISOString(),
+      isPublic: false,
+    };
+
+    set((state) => ({
+      paletteCreation: {
+        ...state.paletteCreation,
+        savedPalettes: [...state.paletteCreation.savedPalettes, newPalette],
+        paletteName: "",
+      },
+    }));
+
+    // Save to localStorage
+    const existingPalettes = JSON.parse(
+      localStorage.getItem("savedPalettes") || "[]"
+    );
+    localStorage.setItem(
+      "savedPalettes",
+      JSON.stringify([...existingPalettes, newPalette])
+    );
+  },
+
+  loadPalette: (palette) =>
+    set((state) => ({
+      paletteCreation: {
+        ...state.paletteCreation,
+        customPalette: [...palette.colors],
+        paletteName: palette.name,
+        currentStage: "custom",
+      },
+    })),
+
+  deletePalette: (id) =>
+    set((state) => {
+      const newSavedPalettes = state.paletteCreation.savedPalettes.filter(
+        (p) => p.id !== id
+      );
+
+      // Update localStorage
+      localStorage.setItem("savedPalettes", JSON.stringify(newSavedPalettes));
+
+      return {
+        paletteCreation: {
+          ...state.paletteCreation,
+          savedPalettes: newSavedPalettes,
+        },
+      };
+    }),
+
+  resetPaletteCreation: () =>
+    set((state) => ({
+      paletteCreation: {
+        currentStage: "choice",
+        customPalette: [],
+        selectedColors: [],
+        paletteName: "",
+        savedPalettes: state.paletteCreation.savedPalettes, // Keep saved palettes
+      },
+    })),
 }));
