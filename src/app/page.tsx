@@ -1,16 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useCustomStore } from "@/store/customStore";
 import DesignCanvas from "@/components/DesignCanvas";
 import ControlPanel from "@/components/ControlPanel";
 import { ShareButton } from "@/components/ShareButton";
 import { PaletteDesignPrompt } from "@/components/PaletteDesignPrompt";
+import { CompanyLinks } from "@/components/CompanyLinks";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, Calendar, Eye, Copy, Check } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 
 interface SharedDesignData {
   shareId: string;
@@ -108,14 +108,6 @@ export default function PreviewPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-  };
-
   if (!mounted) return null;
 
   if (loading) {
@@ -168,86 +160,15 @@ export default function PreviewPage() {
       className="w-full h-screen relative"
       style={{ background: backgroundColor }}
     >
-      {/* Shared Design Info Card - only show if there's a shared design */}
-      {shareId && sharedDesign && (
-        <div className="absolute top-20 left-6 z-40 max-w-sm">
-          <Card className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border border-gray-200 dark:border-gray-700 shadow-lg p-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <svg
-                  className="w-4 h-4 text-purple-600 dark:text-purple-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
-                  />
-                </svg>
-                <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-                  Shared Design
-                </h3>
-              </div>
-
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                  <Calendar className="w-4 h-4" />
-                  <span>Created {formatDate(sharedDesign.createdAt)}</span>
-                </div>
-
-                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                  <Eye className="w-4 h-4" />
-                  <span>{sharedDesign.accessCount} views</span>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Design:
-                  </span>
-                  <Badge variant="secondary">{selectedDesign}</Badge>
-                </div>
-
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Size:
-                  </span>
-                  <Badge variant="outline">
-                    {dimensions.width * 3}&quot; × {dimensions.height * 3}&quot;
-                  </Badge>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Pattern:
-                  </span>
-                  <Badge variant="outline">{colorPattern}</Badge>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyLink}
-                  className="w-full"
-                >
-                  {copied ? (
-                    <Check className="w-4 h-4 mr-2" />
-                  ) : (
-                    <Copy className="w-4 h-4 mr-2" />
-                  )}
-                  {copied ? "Copied!" : "Copy Link"}
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
+      {/* Company Links Component */}
+      <CompanyLinks
+        sharedDesign={sharedDesign}
+        selectedDesign={selectedDesign}
+        dimensions={dimensions}
+        colorPattern={colorPattern}
+        onCopyLink={handleCopyLink}
+        copied={copied}
+      />
 
       {/* Main canvas */}
       <div className="w-full h-full">
