@@ -83,13 +83,6 @@ export function ShareButton() {
             )}
             {copied ? "Copied!" : "Copy Link"}
           </Button>
-          <Button
-            variant="outline"
-            onClick={handleGenerateLink}
-            className="text-xs"
-          >
-            New Link
-          </Button>
         </>
       ) : (
         <Button

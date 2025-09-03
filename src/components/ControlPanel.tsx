@@ -12,22 +12,33 @@ import {
   ChevronUp,
   RotateCcw,
   AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { ItemDesigns } from "@/typings/types";
 import { getBackgroundColorForLighting } from "@/lib/utils";
 import { SizeSelector } from "@/components/ui/size-selector";
 
-const WALL_PRESETS: Array<{ name: string; hex: string }> = [
-  { name: "White", hex: "#ffffff" },
-  { name: "Warm White", hex: "#faf7f2" },
-  { name: "Light Gray", hex: "#e5e7eb" },
-  { name: "Greige", hex: "#dedad2" },
-  { name: "Soft Beige", hex: "#efe7dd" },
-  { name: "Pale Blue", hex: "#e6f0f7" },
-  { name: "Sage", hex: "#e6efe6" },
-  { name: "Blush", hex: "#f9e9ea" },
-  { name: "Charcoal", hex: "#374151" },
-  { name: "Midnight", hex: "#111827" },
+const WALL_PRESETS: Array<{ name: string; hex: string; primary?: boolean }> = [
+  // { name: "White", hex: "#ffffff" },
+  { name: "Warm White", hex: "#faf7f2", primary: true },
+  // { name: "Greige", hex: "#dedad2" },
+  // { name: "Soft Beige", hex: "#efe7dd" },
+  { name: "Pale Blue", hex: "#e6f0f7", primary: true },
+  { name: "Sage", hex: "#e6efe6", primary: true },
+  { name: "Charcoal", hex: "#374151", primary: true },
+  { name: "Midnight", hex: "#111827", primary: true },
+];
+
+const BRIGHTNESS_PRESETS = [
+  { label: "Low", value: 0.7 },
+  { label: "Medium", value: 1.0 },
+  { label: "High", value: 1.3 },
+];
+
+const SHADOW_PRESETS = [
+  { label: "Low", value: 0.1 },
+  { label: "Medium", value: 0.3 },
+  { label: "High", value: 0.6 },
 ];
 
 function clamp(value: number, min: number, max: number) {
@@ -133,6 +144,8 @@ export function ControlPanel() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   // Lighting advanced toggle (separate to avoid conflicts)
   const [showLightingAdvanced, setShowLightingAdvanced] = useState(false);
+  // Wall colors expansion toggle
+  const [showAllWallColors, setShowAllWallColors] = useState(false);
   // Store the original background color to avoid recursive adjustments
   const [originalBackgroundColor, setOriginalBackgroundColor] =
     useState("#374151");
@@ -292,6 +305,12 @@ export function ControlPanel() {
     useState<LightingPresetKey>("gallery");
   const [brightness, setBrightness] = useState<number>(1);
   const [shadowContrast, setShadowContrast] = useState<number>(0.3);
+  const [selectedBrightness, setSelectedBrightness] = useState<
+    "Low" | "Medium" | "High"
+  >("Medium");
+  const [selectedShadows, setSelectedShadows] = useState<
+    "Low" | "Medium" | "High"
+  >("Medium");
 
   const applyLightingFromBase = (
     base: {
@@ -343,11 +362,14 @@ export function ControlPanel() {
     setBackgroundColor(adjustedBackgroundColor);
   };
 
-  const handleBrightnessChange = (val: number) => {
-    setBrightness(val);
+  const handleBrightnessChange = (preset: "Low" | "Medium" | "High") => {
+    const brightnessValue =
+      BRIGHTNESS_PRESETS.find((p) => p.label === preset)?.value || 1;
+    setBrightness(brightnessValue);
+    setSelectedBrightness(preset);
     applyLightingFromBase(
       LIGHTING_PRESETS[selectedPreset],
-      val,
+      brightnessValue,
       shadowContrast
     );
 
@@ -359,9 +381,16 @@ export function ControlPanel() {
     setBackgroundColor(adjustedBackgroundColor);
   };
 
-  const handleShadowsChange = (val: number) => {
-    setShadowContrast(val);
-    applyLightingFromBase(LIGHTING_PRESETS[selectedPreset], brightness, val);
+  const handleShadowsChange = (preset: "Low" | "Medium" | "High") => {
+    const shadowValue =
+      SHADOW_PRESETS.find((p) => p.label === preset)?.value || 0.3;
+    setShadowContrast(shadowValue);
+    setSelectedShadows(preset);
+    applyLightingFromBase(
+      LIGHTING_PRESETS[selectedPreset],
+      brightness,
+      shadowValue
+    );
 
     // Re-apply background color adjustment for current preset
     const adjustedBackgroundColor = getBackgroundColorForLighting(
@@ -436,13 +465,15 @@ export function ControlPanel() {
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Scene Settings
           </h2>
-          <button
-            aria-label="Hide settings"
-            onClick={() => setShowUIControls(false)}
-            className="text-xs px-2 py-1 rounded-md border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            Hide
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              aria-label="Hide settings"
+              onClick={() => setShowUIControls(false)}
+              className="text-xs px-2 py-1 rounded-md border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+            >
+              Hide
+            </button>
+          </div>
         </div>
 
         {/* Status and Revert Section (only shown when viewing shared design) */}
@@ -887,7 +918,8 @@ export function ControlPanel() {
             </div>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            {WALL_PRESETS.map((c) => (
+            {/* Show first 5 colors by default */}
+            {WALL_PRESETS.filter((c) => c.primary).map((c) => (
               <button
                 key={c.hex}
                 title={c.name}
@@ -900,6 +932,41 @@ export function ControlPanel() {
                 style={{ backgroundColor: c.hex }}
               />
             ))}
+
+            {/* Show/hide additional colors */}
+            {showAllWallColors && (
+              <>
+                {WALL_PRESETS.filter((c) => !c.primary).map((c) => (
+                  <button
+                    key={c.hex}
+                    title={c.name}
+                    onClick={() => handleWallPresetClick(c.hex)}
+                    className={`h-7 w-7 rounded-md border transition ring-offset-2 ${
+                      originalBackgroundColor.toLowerCase() ===
+                      c.hex.toLowerCase()
+                        ? "ring-2 ring-blue-500 ring-offset-white dark:ring-offset-gray-900"
+                        : "border-gray-300 dark:border-gray-700"
+                    }`}
+                    style={{ backgroundColor: c.hex }}
+                  />
+                ))}
+              </>
+            )}
+
+            {/* Expand/collapse button */}
+            {WALL_PRESETS.filter((c) => !c.primary).length > 0 && (
+              <button
+                onClick={() => setShowAllWallColors(!showAllWallColors)}
+                className="h-7 px-2 text-xs text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-200 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                {showAllWallColors ? (
+                  <ChevronUp className="w-3 h-3" />
+                ) : (
+                  <ChevronDown className="w-3 h-3" />
+                )}
+              </button>
+            )}
+
             <label className="ml-auto inline-flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
               Custom
               <input
@@ -945,43 +1012,55 @@ export function ControlPanel() {
             )}
           </div>
 
-          {/* Simplified sliders */}
+          {/* Brightness and Shadows Presets */}
           <div className="mt-3 space-y-3">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
-                <span>Overall Brightness</span>
-                <span>{brightness.toFixed(2)}</span>
+            <div>
+              <div className="text-xs text-gray-600 dark:text-gray-300 mb-2">
+                Overall Brightness
               </div>
-              <input
-                aria-label="Overall brightness"
-                type="range"
-                min={0.5}
-                max={1.5}
-                step={0.01}
-                value={brightness}
-                onChange={(e) =>
-                  handleBrightnessChange(parseFloat(e.target.value))
-                }
-                className="w-full accent-gray-800 dark:accent-gray-200"
-              />
+              <div className="grid grid-cols-3 gap-2">
+                {BRIGHTNESS_PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    onClick={() =>
+                      handleBrightnessChange(
+                        preset.label as "Low" | "Medium" | "High"
+                      )
+                    }
+                    className={`text-xs px-2 py-1.5 rounded-md border transition ${
+                      selectedBrightness === preset.label
+                        ? "border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/30"
+                        : "border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
-                <span>Shadows</span>
-                <span>{shadowContrast.toFixed(2)}</span>
+            <div>
+              <div className="text-xs text-gray-600 dark:text-gray-300 mb-2">
+                Shadows
               </div>
-              <input
-                aria-label="Shadows"
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                value={shadowContrast}
-                onChange={(e) =>
-                  handleShadowsChange(parseFloat(e.target.value))
-                }
-                className="w-full accent-gray-800 dark:accent-gray-200"
-              />
+              <div className="grid grid-cols-3 gap-2">
+                {SHADOW_PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    onClick={() =>
+                      handleShadowsChange(
+                        preset.label as "Low" | "Medium" | "High"
+                      )
+                    }
+                    className={`text-xs px-2 py-1.5 rounded-md border transition ${
+                      selectedShadows === preset.label
+                        ? "border-blue-500 text-blue-700 bg-blue-50 dark:bg-blue-950/30"
+                        : "border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
