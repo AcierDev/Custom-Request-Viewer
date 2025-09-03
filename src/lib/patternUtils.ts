@@ -1,26 +1,12 @@
 import { DESIGN_COLORS } from "@/typings/color-maps";
 import { ItemDesigns } from "@/typings/types";
 
-export type ColorPattern =
-  | "horizontal"
-  | "vertical"
-  | "diagonal"
-  | "random"
-  | "striped"
-  | "gradient"
-  | "checkerboard"
-  | "fade"
-  | "center-fade";
+export type ColorPattern = "random" | "striped" | "fade" | "center-fade";
 
 // Valid color patterns for validation
 export const VALID_COLOR_PATTERNS: ColorPattern[] = [
-  "horizontal",
-  "vertical",
-  "diagonal",
   "random",
   "striped",
-  "gradient",
-  "checkerboard",
   "fade",
   "center-fade",
 ];
@@ -1062,43 +1048,14 @@ export function generateColorMap(
       }
     }
   } else {
-    // For other patterns (striped, gradient, checkerboard), create more structured patterns
+    // For other patterns (striped, create more structured patterns
     for (let x = 0; x < adjustedModelWidth; x++) {
       for (let y = 0; y < adjustedModelHeight; y++) {
         let colorIndex: number;
 
         switch (effectiveColorPattern) {
-          case "striped":
-            // Create stripes based on effective orientation
-            if (effectiveOrientation === "horizontal") {
-              colorIndex = x % colorEntries.length;
-            } else {
-              colorIndex = y % colorEntries.length;
-            }
-            break;
-
-          case "gradient":
-            // Similar to fade but with more defined transitions
-            const gradientProgress =
-              effectiveOrientation === "horizontal"
-                ? x / (adjustedModelWidth - 1)
-                : y / (adjustedModelHeight - 1);
-
-            const adjustedGradientProgress = isReversed
-              ? 1 - gradientProgress
-              : gradientProgress;
-            colorIndex = Math.floor(
-              adjustedGradientProgress * colorEntries.length
-            );
-            break;
-
-          case "checkerboard":
-            // Checkerboard pattern
-            colorIndex = (x + y) % colorEntries.length;
-            break;
-
           default:
-            // Fallback to random
+            //!FIXME fallback to fade instead of random
             colorIndex = Math.floor(Math.random() * colorEntries.length);
         }
 
