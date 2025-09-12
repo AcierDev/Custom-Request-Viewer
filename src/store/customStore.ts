@@ -115,6 +115,7 @@ interface CustomStore extends PaletteCreationStore {
   setDimensions: (dimensions: Dimensions) => void;
   setDimensionsByUnit: (width: number, height: number, unit: SizeUnit) => void;
   setSelectedDesign: (design: ItemDesigns) => void;
+  setSelectedDesignWithSharedHandling: (design: ItemDesigns) => void;
   setColorPattern: (pattern: ColorPattern) => void;
   setOrientation: (orientation: "horizontal" | "vertical") => void;
   setIsReversed: (reversed: boolean) => void;
@@ -207,6 +208,26 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
   setSelectedDesign: (selectedDesign) => {
     set({ selectedDesign });
     get().checkForChanges();
+  },
+  setSelectedDesignWithSharedHandling: (design) => {
+    const state = get();
+
+    // If we're viewing a shared design and user selects Custom, revert to shared design
+    if (state.originalSharedData && design === ItemDesigns.Custom) {
+      state.revertToSharedDesign();
+    } else {
+      // If switching to an official design, clear the custom palette so official colors are used
+      if (design !== ItemDesigns.Custom) {
+        set({
+          selectedDesign: design,
+          customPalette: [], // Clear custom palette to use official design colors
+        });
+      } else {
+        // If switching to Custom (but not from shared), keep current state
+        set({ selectedDesign: design });
+      }
+      get().checkForChanges();
+    }
   },
   setColorPattern: (colorPattern) => {
     const validatedPattern = validateColorPattern(colorPattern);
@@ -319,7 +340,7 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
 
       set({
         dimensions: designData.dimensions,
-        selectedDesign: designData.selectedDesign,
+        selectedDesign: ItemDesigns.Custom, // Always set to Custom for shared designs
         colorPattern: designData.colorPattern,
         orientation: designData.orientation,
         isReversed: designData.isReversed,
@@ -347,7 +368,7 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
     if (originalData) {
       set({
         dimensions: originalData.dimensions,
-        selectedDesign: originalData.selectedDesign,
+        selectedDesign: ItemDesigns.Custom, // Always revert to Custom for shared designs
         colorPattern: originalData.colorPattern,
         orientation: originalData.orientation,
         isReversed: originalData.isReversed,

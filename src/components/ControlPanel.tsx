@@ -108,6 +108,7 @@ export function ControlPanel() {
     createSharedDesign,
     selectedDesign,
     setSelectedDesign,
+    setSelectedDesignWithSharedHandling,
     colorPattern,
     setColorPattern,
     orientation,
@@ -581,7 +582,9 @@ export function ControlPanel() {
                         value=""
                         onChange={(e) => {
                           if (e.target.value) {
-                            setSelectedDesign(e.target.value as ItemDesigns);
+                            setSelectedDesignWithSharedHandling(
+                              e.target.value as ItemDesigns
+                            );
                           }
                         }}
                         className="w-full px-3 py-2 text-xs border border-purple-300 dark:border-purple-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500"
@@ -615,7 +618,9 @@ export function ControlPanel() {
                       <select
                         value={selectedDesign}
                         onChange={(e) =>
-                          setSelectedDesign(e.target.value as ItemDesigns)
+                          setSelectedDesignWithSharedHandling(
+                            e.target.value as ItemDesigns
+                          )
                         }
                         className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                       >
@@ -845,10 +850,18 @@ export function ControlPanel() {
                       <select
                         value={selectedDesign}
                         onChange={(e) =>
-                          setSelectedDesign(e.target.value as ItemDesigns)
+                          setSelectedDesignWithSharedHandling(
+                            e.target.value as ItemDesigns
+                          )
                         }
                         className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                       >
+                        {/* Show Custom option for shared designs */}
+                        {isViewingSharedDesign && (
+                          <option value={ItemDesigns.Custom}>
+                            Custom (Original Shared Design)
+                          </option>
+                        )}
                         {Object.values(ItemDesigns)
                           .filter((design) => design !== ItemDesigns.Custom)
                           .map((design) => (
