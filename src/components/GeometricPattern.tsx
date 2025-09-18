@@ -343,6 +343,19 @@ export function GeometricPattern({
               : [0, 0, Math.PI / 2]
             : [0, 0, 0]
         }
+        scale={
+          orientation === "vertical"
+            ? isReversed
+              ? isRotated
+                ? [-1, 1, 1] // Flip along horizontal axis in vertical mode
+                : [1, -1, 1] // Flip along horizontal axis in vertical mode
+              : [1, 1, 1]
+            : isReversed
+            ? isRotated
+              ? [1, -1, 1] // Flip along vertical axis in horizontal mode
+              : [-1, 1, 1] // Flip along vertical axis in horizontal mode
+            : [1, 1, 1]
+        }
         position={[0, 0, 0]}
         onClick={handleGroupClick}
       >

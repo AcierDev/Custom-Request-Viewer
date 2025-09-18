@@ -40,7 +40,7 @@ const designCategories: Record<ItemDesigns, string[]> = {
   [ItemDesigns.Mirage]: ["neutrals", "blues"],
 };
 
-const popularDesigns = [ItemDesigns.Coastal, ItemDesigns.Tidal];
+const popularDesigns: ItemDesigns[] = [];
 
 export function OfficialDesignStage() {
   const { setPaletteStage, setSelectedOfficialDesign } = useCustomStore();
@@ -174,32 +174,34 @@ export function OfficialDesignStage() {
       </motion.div>
 
       {/* Popular Designs Section */}
-      {selectedCategory === "all" && searchQuery === "" && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="mb-12"
-        >
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
-            <Star className="w-5 h-5 text-yellow-500" />
-            Popular Choices
-          </h2>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
-            {popularDesigns.map((design, index) => (
-              <DesignCard
-                key={design}
-                design={design}
-                isSelected={selectedDesign === design}
-                onSelect={handleDesignSelect}
-                onDoubleClick={handleDesignDoubleClick}
-                delay={0.3 + index * 0.1}
-                isPopular
-              />
-            ))}
-          </div>
-        </motion.div>
-      )}
+      {selectedCategory === "all" &&
+        searchQuery === "" &&
+        popularDesigns.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="mb-12"
+          >
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
+              <Star className="w-5 h-5 text-yellow-500" />
+              Popular Choices
+            </h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+              {popularDesigns.map((design, index) => (
+                <DesignCard
+                  key={design}
+                  design={design}
+                  isSelected={selectedDesign === design}
+                  onSelect={handleDesignSelect}
+                  onDoubleClick={handleDesignDoubleClick}
+                  delay={0.3 + index * 0.1}
+                  isPopular
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
 
       {/* All Designs Grid */}
       <motion.div
@@ -350,16 +352,18 @@ function DesignCard({
           </div>
         </div>
 
-        <CardContent className="px-4 pt-0 pb-2">
-          <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
-            {design}
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {colors.length} colors
-          </p>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            Double-click to select
-          </p>
+        <CardContent className="px-3 pb-2 bg-gradient-to-b from-transparent to-gray-50/80 dark:to-gray-800/80 backdrop-blur-sm">
+          <div className="text-center space-y-1">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm leading-tight">
+              {design}
+            </h3>
+            <div className="flex items-center justify-center gap-1.5">
+              <div className="w-1 h-1 rounded-full bg-gray-400" />
+              <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                {colors.length} colors
+              </span>
+            </div>
+          </div>
         </CardContent>
 
         {/* Hover overlay */}
