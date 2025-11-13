@@ -83,8 +83,8 @@ export function GeometricPattern({
 
   if (!details) return null;
 
-  // Get the appropriate color map
-  const colorEntries = getColorEntries(selectedDesign, customPalette);
+  // Get the appropriate color map (reversed if isReversed is true)
+  const colorEntries = getColorEntries(selectedDesign, customPalette, isReversed);
 
   // Determine the dimensions based on whether a drawn pattern is available
   const { width: originalModelWidth, height: originalModelHeight } =
@@ -338,24 +338,10 @@ export function GeometricPattern({
         }-${useMini ? 1 : 0}`}
         rotation={
           orientation === "vertical"
-            ? isReversed
-              ? [0, 0, -Math.PI / 2]
-              : [0, 0, Math.PI / 2]
+            ? [0, 0, Math.PI / 2]
             : [0, 0, 0]
         }
-        scale={
-          orientation === "vertical"
-            ? isReversed
-              ? isRotated
-                ? [-1, 1, 1] // Flip along horizontal axis in vertical mode
-                : [1, -1, 1] // Flip along horizontal axis in vertical mode
-              : [1, 1, 1]
-            : isReversed
-            ? isRotated
-              ? [1, -1, 1] // Flip along vertical axis in horizontal mode
-              : [-1, 1, 1] // Flip along vertical axis in horizontal mode
-            : [1, 1, 1]
-        }
+        scale={[1, 1, 1]}
         position={[0, 0, 0]}
         onClick={handleGroupClick}
       >

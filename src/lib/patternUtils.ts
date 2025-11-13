@@ -40,7 +40,7 @@ export interface TextureVariation {
   rotation: number;
 }
 
-export function getColorEntries(selectedDesign: string, customPalette: any[]) {
+export function getColorEntries(selectedDesign: string, customPalette: any[], isReversed: boolean = false) {
   let colorEntries: [string, { hex: string; name?: string }][] = [];
 
   // If there's a custom palette, use it regardless of selected design
@@ -55,6 +55,11 @@ export function getColorEntries(selectedDesign: string, customPalette: any[]) {
     if (colorMap) {
       colorEntries = Object.entries(colorMap);
     }
+  }
+
+  // Reverse the palette order if isReversed is true
+  if (isReversed) {
+    colorEntries = [...colorEntries].reverse();
   }
 
   return colorEntries;
@@ -183,7 +188,7 @@ export function generateColorMap(
     // The array is already in order: [0,0,0,...,1,1,1,...,2,2,2,...]
     const sequentialColors = [...allColorIndices];
 
-    // Reversal is now handled by 3D model flipping, not pattern generation
+    // Reversal is handled by reversing the palette order in getColorEntries, not here
 
     // Fill the grid based on rotation mode
     let colorIndex = 0;
@@ -437,7 +442,7 @@ export function generateColorMap(
     // For center-fade patterns, create a mirrored color array
     const totalBlocks = adjustedModelWidth * adjustedModelHeight;
 
-    // Reversal is now handled by 3D model flipping, not pattern generation
+    // Reversal is handled by reversing the palette order in getColorEntries, not here
 
     // Create the mirrored color array (always normal order)
     const mirroredColorIndices: number[] = [];
@@ -747,11 +752,6 @@ export function generateColorMap(
           default:
             //!FIXME fallback to fade instead of random
             colorIndex = Math.floor(Math.random() * colorEntries.length);
-        }
-
-        // Apply reversal if needed
-        if (isReversed) {
-          colorIndex = colorEntries.length - 1 - colorIndex;
         }
 
         colorMap[x][y] = Math.min(colorIndex, colorEntries.length - 1);

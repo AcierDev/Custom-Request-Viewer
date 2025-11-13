@@ -223,10 +223,10 @@ export function CompanyLinks({
               <span>{formatDate(sharedDesign.createdAt)}</span>
             </div>
 
-            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+            {/* <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
               <Eye className="w-3.5 h-3.5" />
               <span>{sharedDesign.accessCount} views</span>
-            </div>
+            </div> */}
 
             {selectedDesign && (
               <div className="flex items-center gap-2">
