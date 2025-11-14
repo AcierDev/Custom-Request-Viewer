@@ -85,16 +85,26 @@ export const PlywoodBase = memo(function PlywoodBase({
   // Memoize colors to prevent recalculation
   const colors = useMemo(() => {
     // Get the appropriate color entries (already reversed if isReversed is true)
-    const colorEntries = getColorEntries(selectedDesign, customPalette, isReversed);
+    const colorEntries = getColorEntries(
+      selectedDesign,
+      customPalette,
+      isReversed
+    );
 
     // Determine the colors based on pattern
-    // Since the palette is already reversed, we always use first and last
     let leftColor = "#8B5E3B";
     let rightColor = "#8B5E3B";
 
     if (colorEntries.length > 0) {
-      leftColor = colorEntries[0][1].hex;
-      rightColor = colorEntries[colorEntries.length - 1][1].hex;
+      if (colorPattern === "center-fade") {
+        // In center-fade mode, both sides use the outer color (first color)
+        leftColor = colorEntries[0][1].hex;
+        rightColor = colorEntries[0][1].hex;
+      } else {
+        // For other patterns, use first and last colors
+        leftColor = colorEntries[0][1].hex;
+        rightColor = colorEntries[colorEntries.length - 1][1].hex;
+      }
     }
 
     return { leftColor, rightColor };
