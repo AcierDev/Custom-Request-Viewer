@@ -42,16 +42,32 @@ const createWedgeGeometry = (): THREE.BufferGeometry => {
   // Define vertices for a wedge with square base
   const positions: number[] = [
     // Base (bottom)
-    -0.5, -0.5, 0, // v0 - back left
-    0.5, -0.5, 0, // v1 - back right
-    0.5, 0.5, 0, // v2 - front right
-    -0.5, 0.5, 0, // v3 - front left
+    -0.5,
+    -0.5,
+    0, // v0 - back left
+    0.5,
+    -0.5,
+    0, // v1 - back right
+    0.5,
+    0.5,
+    0, // v2 - front right
+    -0.5,
+    0.5,
+    0, // v3 - front left
 
     // Top
-    -0.5, -0.5, height, // v4 - back left (elevated)
-    0.5, -0.5, height, // v5 - back right (elevated)
-    0.5, 0.5, 0, // v6 - front right (same as base)
-    -0.5, 0.5, 0, // v7 - front left (same as base)
+    -0.5,
+    -0.5,
+    height, // v4 - back left (elevated)
+    0.5,
+    -0.5,
+    height, // v5 - back right (elevated)
+    0.5,
+    0.5,
+    0, // v6 - front right (same as base)
+    -0.5,
+    0.5,
+    0, // v7 - front left (same as base)
   ];
 
   // Define faces using triangle indices
@@ -97,22 +113,147 @@ const createWedgeGeometry = (): THREE.BufferGeometry => {
   }
 
   // Generate UVs for texture mapping
+  // We need UVs for all 8 vertices
+  // Bottom face vertices (0-3): map as square for top texture
+  // Top face vertices (4-7): map as square for top texture
+  // Side faces will use side texture via material groups
   const uvs: number[] = [
-    // Base
-    0, 0, 1, 0, 1, 1, 0, 1,
+    // Bottom vertices (0-3) - for bottom face
+    0,
+    0, // v0 - back left
+    1,
+    0, // v1 - back right
+    1,
+    1, // v2 - front right
+    0,
+    1, // v3 - front left
 
-    // Top
-    0, 0, 1, 0, 1, 1, 0, 1,
+    // Top vertices (4-7) - for top face
+    0,
+    0, // v4 - back left (elevated)
+    1,
+    0, // v5 - back right (elevated)
+    1,
+    1, // v6 - front right (same as v2)
+    0,
+    1, // v7 - front left (same as v3)
   ];
+
+  // For proper UV mapping on side faces, we need to duplicate vertices
+  // since side faces need different UV coordinates than top/bottom faces
+  const finalPositions: number[] = [];
+  const finalNormals: number[] = [];
+  const finalUVs: number[] = [];
+  const finalIndices: number[] = [];
+  const groups: Array<{ start: number; count: number; materialIndex: number }> =
+    [];
+
+  // Track current index for groups
+  let currentIndex = 0;
+
+  // Helper to add a triangle with specific UVs
+  const addTriangle = (
+    v0Idx: number,
+    v1Idx: number,
+    v2Idx: number,
+    uv0: [number, number],
+    uv1: [number, number],
+    uv2: [number, number],
+    materialGroup: number
+  ) => {
+    const startIdx = finalPositions.length / 3;
+
+    // Add vertices
+    finalPositions.push(
+      positions[v0Idx * 3],
+      positions[v0Idx * 3 + 1],
+      positions[v0Idx * 3 + 2],
+      positions[v1Idx * 3],
+      positions[v1Idx * 3 + 1],
+      positions[v1Idx * 3 + 2],
+      positions[v2Idx * 3],
+      positions[v2Idx * 3 + 1],
+      positions[v2Idx * 3 + 2]
+    );
+
+    // Add normals
+    finalNormals.push(
+      normals[v0Idx * 3],
+      normals[v0Idx * 3 + 1],
+      normals[v0Idx * 3 + 2],
+      normals[v1Idx * 3],
+      normals[v1Idx * 3 + 1],
+      normals[v1Idx * 3 + 2],
+      normals[v2Idx * 3],
+      normals[v2Idx * 3 + 1],
+      normals[v2Idx * 3 + 2]
+    );
+
+    // Add UVs
+    finalUVs.push(uv0[0], uv0[1], uv1[0], uv1[1], uv2[0], uv2[1]);
+
+    // Add indices
+    finalIndices.push(startIdx, startIdx + 1, startIdx + 2);
+
+    // Add to groups - check if we need to start a new group or extend existing one
+    const lastGroup = groups[groups.length - 1];
+    if (
+      lastGroup &&
+      lastGroup.materialIndex === materialGroup &&
+      lastGroup.start + lastGroup.count === currentIndex
+    ) {
+      // Extend existing group
+      lastGroup.count += 3;
+    } else {
+      // Start new group
+      groups.push({
+        start: currentIndex,
+        count: 3,
+        materialIndex: materialGroup,
+      });
+    }
+    currentIndex += 3;
+  };
+
+  // Bottom face (material 0 - top texture)
+  addTriangle(0, 2, 1, [0, 0], [1, 1], [1, 0], 0);
+  addTriangle(0, 3, 2, [0, 0], [0, 1], [1, 1], 0);
+
+  // Top face (material 0 - top texture)
+  addTriangle(4, 5, 6, [0, 0], [1, 0], [1, 1], 0);
+  addTriangle(4, 6, 7, [0, 0], [1, 1], [0, 1], 0);
+
+  // Left face (material 1 - side texture)
+  // Use normalized UVs (0-1) - texture repeat will handle scaling
+  addTriangle(0, 4, 7, [0, 0], [0, 1], [1, 1], 1);
+  addTriangle(0, 7, 3, [0, 0], [1, 1], [1, 0], 1);
+
+  // Right face (material 1 - side texture)
+  addTriangle(1, 2, 6, [0, 0], [1, 0], [1, 1], 1);
+  addTriangle(1, 6, 5, [0, 0], [1, 1], [0, 1], 1);
+
+  // Back face (material 1 - side texture)
+  addTriangle(0, 1, 5, [0, 0], [1, 0], [1, 1], 1);
+  addTriangle(0, 5, 4, [0, 0], [1, 1], [0, 1], 1);
+
+  // Front face (material 1 - side texture)
+  addTriangle(3, 7, 6, [0, 0], [0, 1], [1, 1], 1);
+  addTriangle(3, 6, 2, [0, 0], [1, 1], [1, 0], 1);
 
   // Set attributes
   geometry.setAttribute(
     "position",
-    new THREE.Float32BufferAttribute(positions, 3)
+    new THREE.Float32BufferAttribute(finalPositions, 3)
   );
-  geometry.setAttribute("normal", new THREE.Float32BufferAttribute(normals, 3));
-  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
-  geometry.setIndex(indices);
+  geometry.setAttribute(
+    "normal",
+    new THREE.Float32BufferAttribute(finalNormals, 3)
+  );
+  geometry.setAttribute("uv", new THREE.Float32BufferAttribute(finalUVs, 2));
+  geometry.setIndex(finalIndices);
+
+  // Apply material groups
+  geometry.groups = groups;
 
   // Center the geometry
   geometry.center();
@@ -201,8 +342,42 @@ export function Block({
   // Create materials with better memoization pattern
   const materialKey = `${color}-${isHovered}-${showWoodGrain}-${showColorInfo}`;
 
-  // Create a single material for geometric blocks
-  const geometricMaterial = useMemo(
+  // Create material array for geometric blocks
+  // Material 0: Top and bottom faces (use top texture)
+  // Material 1: Side faces (use side texture)
+  const geometricMaterials = useMemo(
+    () => [
+      // Material for top/bottom faces
+      new THREE.MeshStandardMaterial({
+        map: showWoodGrain ? uniqueTopTexture : null,
+        color,
+        roughness: 0.8,
+        metalness: 0.05,
+        emissive: isHovered && showColorInfo ? color : "#000000",
+        emissiveIntensity: isHovered && showColorInfo ? 0.5 : 0,
+      }),
+      // Material for side faces
+      new THREE.MeshStandardMaterial({
+        map: showWoodGrain ? uniqueSideTexture : null,
+        color,
+        roughness: 0.8,
+        metalness: 0.05,
+        emissive: isHovered && showColorInfo ? color : "#000000",
+        emissiveIntensity: isHovered && showColorInfo ? 0.5 : 0,
+      }),
+    ],
+    [
+      uniqueTopTexture,
+      uniqueSideTexture,
+      color,
+      isHovered,
+      showWoodGrain,
+      showColorInfo,
+    ]
+  );
+
+  // Create a single material for non-geometric blocks (box geometry handles UVs automatically)
+  const boxMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
         map: showWoodGrain ? uniqueTopTexture : null,
@@ -251,7 +426,7 @@ export function Block({
         rotation={[0, 0, rotation]}
         scale={[adjustedSize, adjustedSize, adjustedHeight]}
         geometry={wedgeGeometry}
-        material={geometricMaterial}
+        material={geometricMaterials}
         castShadow
         receiveShadow
         onPointerEnter={(e) => {
@@ -274,7 +449,7 @@ export function Block({
       position={adjustedPosition}
       scale={[size, size, height]}
       geometry={boxGeometry}
-      material={geometricMaterial}
+      material={boxMaterial}
       castShadow
       receiveShadow
       onPointerEnter={(e) => {
