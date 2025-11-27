@@ -8,9 +8,11 @@ import ControlPanel from "@/components/ControlPanel";
 import { ShareButton } from "@/components/ShareButton";
 import { PaletteDesignPrompt } from "@/components/PaletteDesignPrompt";
 import { CompanyLinks } from "@/components/CompanyLinks";
+import { MobileTouchHint } from "@/components/MobileTouchHint";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Settings, Share2 } from "lucide-react";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface SharedDesignData {
   shareId: string;
@@ -33,6 +35,7 @@ export default function PreviewPage() {
   } = useCustomStore();
   const { showUIControls } = viewSettings;
   const router = useRouter();
+  const isMobile = useIsMobile();
 
   const [sharedDesign, setSharedDesign] = useState<SharedDesignData | null>(
     null
@@ -54,6 +57,14 @@ export default function PreviewPage() {
     const resizeEvent = new Event("resize");
     window.dispatchEvent(resizeEvent);
   }, []);
+
+  // Auto-hide controls on mobile for shared designs
+  useEffect(() => {
+    if (mounted && isMobile && shareId) {
+      // On mobile with a shared design, hide controls by default
+      setShowUIControls(false);
+    }
+  }, [mounted, isMobile, shareId, setShowUIControls]);
 
   // Load shared design from query param
   useEffect(() => {
@@ -113,7 +124,7 @@ export default function PreviewPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center">
+        <div className="text-center px-4">
           <Loader2 className="h-8 w-8 animate-spin text-purple-600 dark:text-purple-400 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">
             Loading shared design...
@@ -125,8 +136,8 @@ export default function PreviewPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <Card className="max-w-md mx-4 p-6 text-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full p-6 text-center">
           <div className="text-red-500 mb-4">
             <svg
               className="h-12 w-12 mx-auto"
@@ -157,7 +168,7 @@ export default function PreviewPage() {
 
   return (
     <div
-      className="w-full h-screen relative"
+      className="w-full h-screen relative overflow-hidden"
       style={{ background: backgroundColor }}
     >
       {/* Company Links Component */}
@@ -175,22 +186,56 @@ export default function PreviewPage() {
         <DesignCanvas className="w-full h-full" />
       </div>
 
+      {/* Touch hint for mobile users viewing shared designs */}
+      {isMobile && shareId && <MobileTouchHint />}
+
+      {/* Control Panel or Floating Controls */}
       {showUIControls ? (
         <ControlPanel />
       ) : (
-        <div className="absolute top-4 right-4 z-50 flex gap-2">
-          <ShareButton />
-          <button
-            aria-label="Show settings"
-            onClick={() => setShowUIControls(true)}
-            className="px-3 py-1.5 text-sm rounded-md border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow hover:bg-white dark:hover:bg-gray-800"
-          >
-            Settings
-          </button>
-        </div>
+        <>
+          {/* Desktop floating controls */}
+          {!isMobile && (
+            <div className="absolute top-4 right-4 z-50 flex gap-2">
+              <ShareButton />
+              <button
+                aria-label="Show settings"
+                onClick={() => setShowUIControls(true)}
+                className="px-3 py-1.5 text-sm rounded-md border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow hover:bg-white dark:hover:bg-gray-800"
+              >
+                Settings
+              </button>
+            </div>
+          )}
+
+          {/* Mobile floating action buttons */}
+          {isMobile && (
+            <div className="fixed bottom-6 right-4 z-40 flex flex-col gap-3">
+              {/* Share FAB */}
+              {shareId && (
+                <button
+                  onClick={handleCopyLink}
+                  className="w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all"
+                  aria-label="Copy share link"
+                >
+                  <Share2 className="w-5 h-5" />
+                </button>
+              )}
+
+              {/* Settings FAB */}
+              <button
+                onClick={() => setShowUIControls(true)}
+                className="w-14 h-14 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg flex items-center justify-center hover:from-purple-700 hover:to-pink-700 active:scale-95 transition-all"
+                aria-label="Show settings"
+              >
+                <Settings className="w-6 h-6" />
+              </button>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Palette Design Prompt */}
+      {/* Palette Design Prompt - only show when not viewing a shared design */}
       {!shareId && <PaletteDesignPrompt />}
     </div>
   );

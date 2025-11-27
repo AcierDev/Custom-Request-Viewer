@@ -12,12 +12,15 @@ import {
   ChevronUp,
   RotateCcw,
   AlertCircle,
+  X,
+  GripHorizontal,
 } from "lucide-react";
 import { ItemDesigns } from "@/typings/types";
 import { getBackgroundColorForLighting } from "@/lib/utils";
 import { SizeSelector } from "@/components/ui/size-selector";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 const WALL_PRESETS: Array<{ name: string; hex: string; primary?: boolean }> = [
   // { name: "White", hex: "#ffffff" },
@@ -123,6 +126,9 @@ export function ControlPanel() {
     hasChangesFromShared,
     revertToSharedDesign,
   } = useCustomStore();
+
+  // Mobile detection
+  const isMobile = useIsMobile();
 
   const [shareableLink, setShareableLink] = useState("");
   const [copied, setCopied] = useState(false);
@@ -462,14 +468,44 @@ export function ControlPanel() {
     }, 2000);
   };
 
+  // Animation variants for mobile (bottom sheet) vs desktop (side panel)
+  const panelVariants = {
+    hidden: isMobile
+      ? { opacity: 0, y: "100%" }
+      : { opacity: 0, x: 20 },
+    visible: isMobile
+      ? { opacity: 1, y: 0 }
+      : { opacity: 1, x: 0 },
+    exit: isMobile
+      ? { opacity: 0, y: "100%" }
+      : { opacity: 0, x: 20 },
+  };
+
   return (
     <motion.aside
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.2 }}
-      className="absolute top-4 right-4 z-50 w-[360px] max-w-[94vw] max-h-[92vh] rounded-2xl border border-gray-200/70 dark:border-gray-700/70 bg-white/75 dark:bg-gray-900/75 backdrop-blur-xl shadow-xl overflow-hidden flex flex-col"
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      variants={panelVariants}
+      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      className={`
+        fixed z-50 border border-gray-200/70 dark:border-gray-700/70 
+        bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-xl 
+        overflow-hidden flex flex-col
+        ${isMobile
+          ? "bottom-0 left-0 right-0 rounded-t-2xl max-h-[85vh]"
+          : "top-4 right-4 w-[360px] max-w-[94vw] max-h-[92vh] rounded-2xl"
+        }
+      `}
     >
-      <div className="p-4 space-y-4 overflow-y-auto">
+      {/* Mobile drag handle */}
+      {isMobile && (
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+        </div>
+      )}
+
+      <div className={`${isMobile ? "p-3" : "p-4"} space-y-4 overflow-y-auto`}>
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Scene Settings
@@ -478,9 +514,17 @@ export function ControlPanel() {
             <button
               aria-label="Hide settings"
               onClick={() => setShowUIControls(false)}
-              className="text-xs px-2 py-1 rounded-md border border-gray-300 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+              className={`
+                flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-700 
+                hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors
+                ${isMobile ? "p-2" : "text-xs px-2 py-1"}
+              `}
             >
-              Hide
+              {isMobile ? (
+                <X className="w-4 h-4" />
+              ) : (
+                "Hide"
+              )}
             </button>
           </div>
         </div>

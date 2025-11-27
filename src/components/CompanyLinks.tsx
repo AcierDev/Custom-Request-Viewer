@@ -13,9 +13,13 @@ import {
   Clock,
   MapPin,
   ChevronDown,
+  ChevronUp,
   Share2,
   ShoppingBag,
+  Info,
+  X,
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface SharedDesignData {
   shareId: string;
@@ -93,6 +97,8 @@ export function CompanyLinks({
   copied = false,
 }: CompanyLinksProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showMobileInfo, setShowMobileInfo] = useState(false);
+  const isMobile = useIsMobile();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -102,6 +108,189 @@ export function CompanyLinks({
     });
   };
 
+  // Mobile layout - compact top bar with expandable info
+  if (isMobile) {
+    return (
+      <>
+        {/* Mobile top bar - compact info */}
+        <div className="fixed top-16 left-0 right-0 z-40 px-3 pt-2">
+          <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+            <div className="flex items-center justify-between p-3">
+              {/* Left side - Brand/Info toggle */}
+              <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="flex items-center gap-2"
+              >
+                <span className="text-sm font-semibold bg-gradient-to-r from-orange-700 via-gray-500 to-sky-700 bg-clip-text text-transparent">
+                  EVERWOOD
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 text-gray-400 transition-transform ${
+                    isExpanded ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              {/* Right side - Shared design info + Copy button */}
+              {sharedDesign && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowMobileInfo(!showMobileInfo)}
+                    className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                    <span className="text-xs font-medium">Info</span>
+                  </button>
+                  {onCopyLink && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onCopyLink}
+                      className="h-8 px-2"
+                    >
+                      {copied ? (
+                        <Check className="w-4 h-4 text-green-500" />
+                      ) : (
+                        <Copy className="w-4 h-4" />
+                      )}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Expanded company links */}
+            {isExpanded && (
+              <div className="px-3 pb-3 border-t border-gray-200/50 dark:border-gray-700/50">
+                <div className="grid grid-cols-2 gap-2 pt-3">
+                  {links.map((link) => (
+                    <a
+                      key={link.name}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+                    >
+                      <span className="text-gray-600 dark:text-gray-400">
+                        {link.icon}
+                      </span>
+                      <span className="text-xs text-gray-700 dark:text-gray-300 truncate">
+                        {link.name}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+                <div className="mt-3 pt-3 border-t border-gray-200/50 dark:border-gray-700/50">
+                  <div className="flex flex-wrap gap-2">
+                    {contactInfo.map((info) =>
+                      info.href ? (
+                        <a
+                          key={info.label}
+                          href={info.href}
+                          target={info.href.startsWith("mailto") ? undefined : "_blank"}
+                          rel={info.href.startsWith("mailto") ? undefined : "noopener noreferrer"}
+                          className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+                        >
+                          {info.icon}
+                          <span className="max-w-[100px] truncate">{info.value}</span>
+                        </a>
+                      ) : (
+                        <div
+                          key={info.label}
+                          className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-600 dark:text-gray-400"
+                        >
+                          {info.icon}
+                          <span className="max-w-[100px] truncate">{info.value}</span>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile shared design info modal/sheet */}
+        {showMobileInfo && sharedDesign && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowMobileInfo(false)}
+            />
+
+            {/* Sheet */}
+            <div className="relative w-full bg-white dark:bg-gray-900 rounded-t-2xl p-4 pb-8 animate-in slide-in-from-bottom duration-300">
+              <div className="flex justify-center mb-3">
+                <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
+              </div>
+
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <Share2 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Shared Design
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setShowMobileInfo(false)}
+                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
+                  <Calendar className="w-4 h-4" />
+                  <span>Created {formatDate(sharedDesign.createdAt)}</span>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {selectedDesign && (
+                    <Badge variant="secondary" className="text-sm">
+                      {selectedDesign}
+                    </Badge>
+                  )}
+                  {dimensions && (
+                    <Badge variant="outline" className="text-sm">
+                      {dimensions.width * 3}" × {dimensions.height * 3}"
+                    </Badge>
+                  )}
+                  {colorPattern && (
+                    <Badge variant="outline" className="text-sm capitalize">
+                      {colorPattern}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              {onCopyLink && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={onCopyLink}
+                  className="w-full mt-6"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4 mr-2" />
+                  ) : (
+                    <Copy className="w-4 h-4 mr-2" />
+                  )}
+                  {copied ? "Copied!" : "Copy Share Link"}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // Desktop layout - original side panel
   return (
     <div className="fixed top-20 left-6 z-50 max-w-sm space-y-3">
       {/* Company Links */}
@@ -222,11 +411,6 @@ export function CompanyLinks({
               <Calendar className="w-3.5 h-3.5" />
               <span>{formatDate(sharedDesign.createdAt)}</span>
             </div>
-
-            {/* <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-              <Eye className="w-3.5 h-3.5" />
-              <span>{sharedDesign.accessCount} views</span>
-            </div> */}
 
             {selectedDesign && (
               <div className="flex items-center gap-2">
