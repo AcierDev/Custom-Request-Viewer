@@ -25,12 +25,7 @@ export function useIsMobile(breakpoint: number = MOBILE_BREAKPOINT): boolean {
     const mediaQuery = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
 
     // Sync state in case it changed between SSR and hydration
-    const initialMatch = mediaQuery.matches;
-    setIsMobile(initialMatch);
-
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/520fd0b6-9d91-40b6-96f5-42848c258eb0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useIsMobile.ts:useEffect',message:'Mobile detection init',data:{breakpoint,initialMatch,windowInnerWidth:window.innerWidth,query:`(max-width: ${breakpoint - 1}px)`,runId:'post-fix'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
+    setIsMobile(mediaQuery.matches);
 
     // Handler for media query changes
     const handleChange = (event: MediaQueryListEvent) => {
