@@ -116,13 +116,14 @@ export function CompanyLinks({
         <div className="fixed top-16 left-0 right-0 z-40 px-3 pt-2">
           <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
             <div className="flex items-center justify-between p-3">
-              {/* Left side - Brand/Info toggle */}
+              {/* Left side - Links toggle */}
               <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
-                <span className="text-sm font-semibold bg-gradient-to-r from-orange-700 via-gray-500 to-sky-700 bg-clip-text text-transparent">
-                  EVERWOOD
+                <ExternalLink className="w-4 h-4 text-gray-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  Links
                 </span>
                 <ChevronDown
                   className={`w-4 h-4 text-gray-400 transition-transform ${

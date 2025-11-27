@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCustomStore } from "@/store/customStore";
 import {
@@ -481,8 +481,25 @@ export function ControlPanel() {
       : { opacity: 0, x: 20 },
   };
 
+  // #region agent log
+  const mobileClasses = "inset-x-0 bottom-0 rounded-t-2xl max-h-[85vh]";
+  const desktopClasses = "top-20 right-4 w-[360px] max-w-[94vw] max-h-[85vh] rounded-2xl";
+  const appliedClasses = isMobile ? mobileClasses : desktopClasses;
+  fetch('http://127.0.0.1:7242/ingest/520fd0b6-9d91-40b6-96f5-42848c258eb0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ControlPanel.tsx:render',message:'Panel render debug',data:{isMobile,appliedClasses,panelVariantsVisible:panelVariants.visible,windowWidth:typeof window!=='undefined'?window.innerWidth:'SSR'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A-D',runId:'post-fix'})}).catch(()=>{});
+  // #endregion
+
+  // #region agent log
+  const panelRef = useCallback((node: HTMLElement | null) => {
+    if (node) {
+      const computed = window.getComputedStyle(node);
+      fetch('http://127.0.0.1:7242/ingest/520fd0b6-9d91-40b6-96f5-42848c258eb0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ControlPanel.tsx:ref',message:'Panel computed styles',data:{left:computed.left,right:computed.right,bottom:computed.bottom,top:computed.top,width:computed.width,transform:computed.transform,position:computed.position,inset:computed.inset},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A-E',runId:'post-fix'})}).catch(()=>{});
+    }
+  }, []);
+  // #endregion
+
   return (
     <motion.aside
+      ref={panelRef}
       initial="hidden"
       animate="visible"
       exit="exit"
@@ -492,10 +509,7 @@ export function ControlPanel() {
         fixed z-50 border border-gray-200/70 dark:border-gray-700/70 
         bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-xl 
         overflow-hidden flex flex-col
-        ${isMobile
-          ? "bottom-0 left-0 right-0 rounded-t-2xl max-h-[85vh]"
-          : "top-4 right-4 w-[360px] max-w-[94vw] max-h-[92vh] rounded-2xl"
-        }
+        ${appliedClasses}
       `}
     >
       {/* Mobile drag handle */}
@@ -505,7 +519,7 @@ export function ControlPanel() {
         </div>
       )}
 
-      <div className={`${isMobile ? "p-3" : "p-4"} space-y-4 overflow-y-auto`}>
+      <div className={`${isMobile ? "px-4 pb-6 pt-2" : "p-4"} space-y-4 overflow-y-auto`}>
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Scene Settings

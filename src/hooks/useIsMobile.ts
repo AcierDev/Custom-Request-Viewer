@@ -12,14 +12,25 @@ const MOBILE_BREAKPOINT = 768; // md breakpoint in Tailwind
  * @returns boolean indicating if viewport is mobile-sized
  */
 export function useIsMobile(breakpoint: number = MOBILE_BREAKPOINT): boolean {
-  const [isMobile, setIsMobile] = useState(false);
+  // Initialize with correct value to prevent flash of desktop layout
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth < breakpoint;
+    }
+    return false; // SSR fallback
+  });
 
   useEffect(() => {
     // Create media query for the breakpoint
     const mediaQuery = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
 
-    // Set initial value
-    setIsMobile(mediaQuery.matches);
+    // Sync state in case it changed between SSR and hydration
+    const initialMatch = mediaQuery.matches;
+    setIsMobile(initialMatch);
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/520fd0b6-9d91-40b6-96f5-42848c258eb0',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useIsMobile.ts:useEffect',message:'Mobile detection init',data:{breakpoint,initialMatch,windowInnerWidth:window.innerWidth,query:`(max-width: ${breakpoint - 1}px)`,runId:'post-fix'},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
 
     // Handler for media query changes
     const handleChange = (event: MediaQueryListEvent) => {

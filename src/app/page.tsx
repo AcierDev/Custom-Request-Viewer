@@ -196,17 +196,17 @@ export default function PreviewPage() {
         <>
           {/* Desktop floating controls */}
           {!isMobile && (
-            <div className="absolute top-4 right-4 z-50 flex gap-2">
-              <ShareButton />
-              <button
-                aria-label="Show settings"
-                onClick={() => setShowUIControls(true)}
-                className="px-3 py-1.5 text-sm rounded-md border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow hover:bg-white dark:hover:bg-gray-800"
-              >
-                Settings
-              </button>
-            </div>
-          )}
+        <div className="absolute top-4 right-4 z-50 flex gap-2">
+          <ShareButton />
+          <button
+            aria-label="Show settings"
+            onClick={() => setShowUIControls(true)}
+            className="px-3 py-1.5 text-sm rounded-md border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow hover:bg-white dark:hover:bg-gray-800"
+          >
+            Settings
+          </button>
+        </div>
+      )}
 
           {/* Mobile floating action buttons */}
           {isMobile && (
