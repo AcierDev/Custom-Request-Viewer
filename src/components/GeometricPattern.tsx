@@ -55,7 +55,7 @@ export function GeometricPattern({
 
   const { showSplitPanel } = viewSettings;
 
-  const details = getDimensionsDetails(dimensions);
+  const details = getDimensionsDetails(dimensions, useMini);
 
   // Create refs for rotation seeds
   const rotationSeedsRef = useRef<boolean[][] | undefined>(undefined);

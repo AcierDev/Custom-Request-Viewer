@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { Dimensions, ItemDesigns } from "@/typings/types";
 import { ColorPattern, validateColorPattern } from "@/lib/patternUtils";
+import { getBlockSizeInches } from "@/lib/utils";
 
 // Palette creation types
 export interface CustomColor {
@@ -187,17 +188,19 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
   },
   setDimensionsByUnit: (width, height, unit) =>
     set(() => {
+      // Get the block size based on mini mode
+      const blockSizeInches = getBlockSizeInches(get().useMini);
+      
       // Convert provided units back to blocks for storage
       let blocksW = width;
       let blocksH = height;
       if (unit === "inches") {
-        // 1 block = 3 inches
-        blocksW = width / 3;
-        blocksH = height / 3;
+        blocksW = width / blockSizeInches;
+        blocksH = height / blockSizeInches;
       } else if (unit === "feet") {
-        // 1 foot = 12 inches, 1 block = 3 inches
-        blocksW = (width * 12) / 3;
-        blocksH = (height * 12) / 3;
+        // 1 foot = 12 inches
+        blocksW = (width * 12) / blockSizeInches;
+        blocksH = (height * 12) / blockSizeInches;
       }
       // Clamp to minimums
       blocksW = Math.max(1, Math.round(blocksW));

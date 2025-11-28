@@ -16,7 +16,7 @@ import {
   GripHorizontal,
 } from "lucide-react";
 import { ItemDesigns } from "@/typings/types";
-import { getBackgroundColorForLighting } from "@/lib/utils";
+import { getBackgroundColorForLighting, getBlockSizeInches } from "@/lib/utils";
 import { SizeSelector } from "@/components/ui/size-selector";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -166,21 +166,24 @@ export function ControlPanel() {
     isViewingSharedDesign ? "scene" : "design"
   );
 
+  // Get the block size in inches based on mini mode
+  const blockSizeInches = getBlockSizeInches(useMini);
+
   // Local derived values for size inputs
   const unitDimensions = useMemo(() => {
     if (sizeUnit === "blocks")
       return { w: dimensions.width, h: dimensions.height };
     if (sizeUnit === "inches")
       return {
-        w: Math.round(dimensions.width * 3),
-        h: Math.round(dimensions.height * 3),
+        w: parseFloat((dimensions.width * blockSizeInches).toFixed(2)),
+        h: parseFloat((dimensions.height * blockSizeInches).toFixed(2)),
       };
     // feet
     return {
-      w: parseFloat(((dimensions.width * 3) / 12).toFixed(2)),
-      h: parseFloat(((dimensions.height * 3) / 12).toFixed(2)),
+      w: parseFloat(((dimensions.width * blockSizeInches) / 12).toFixed(2)),
+      h: parseFloat(((dimensions.height * blockSizeInches) / 12).toFixed(2)),
     };
-  }, [dimensions, sizeUnit]);
+  }, [dimensions, sizeUnit, blockSizeInches]);
 
   const [widthVal, setWidthVal] = useState<number | string>(unitDimensions.w);
   const [heightVal, setHeightVal] = useState<number | string>(unitDimensions.h);
@@ -218,11 +221,11 @@ export function ControlPanel() {
     let targetBlocksW = w;
     let targetBlocksH = h;
     if (sizeUnit === "inches") {
-      targetBlocksW = w / 3;
-      targetBlocksH = h / 3;
+      targetBlocksW = w / blockSizeInches;
+      targetBlocksH = h / blockSizeInches;
     } else if (sizeUnit === "feet") {
-      targetBlocksW = (w * 12) / 3;
-      targetBlocksH = (h * 12) / 3;
+      targetBlocksW = (w * 12) / blockSizeInches;
+      targetBlocksH = (h * 12) / blockSizeInches;
     }
 
     // Only update if the target block count is different from what we last committed
@@ -243,7 +246,8 @@ export function ControlPanel() {
     }
   };
 
-  // Validation for block increments (1 block = 3 inches)
+  // Validation for block increments (uses blockSizeInches for current mode)
+  const blockSizeFeet = blockSizeInches / 12; // Convert to feet per block
   const epsilon = 1e-6;
   const toNumber = (v: number | string) =>
     typeof v === "string" ? parseFloat(v) : v;
@@ -260,13 +264,13 @@ export function ControlPanel() {
   const validW = isBlocks
     ? Number.isFinite(numericW) && Number.isInteger(numericW) && numericW >= 1
     : isInches
-    ? isMultipleOf(numericW, 3)
-    : isMultipleOf(numericW, 0.25);
+    ? isMultipleOf(numericW, blockSizeInches)
+    : isMultipleOf(numericW, blockSizeFeet);
   const validH = isBlocks
     ? Number.isFinite(numericH) && Number.isInteger(numericH) && numericH >= 1
     : isInches
-    ? isMultipleOf(numericH, 3)
-    : isMultipleOf(numericH, 0.25);
+    ? isMultipleOf(numericH, blockSizeInches)
+    : isMultipleOf(numericH, blockSizeFeet);
   const anyInvalid =
     Number.isFinite(numericW) &&
     Number.isFinite(numericH) &&
@@ -276,16 +280,15 @@ export function ControlPanel() {
   const snapToNearest = () => {
     if (!Number.isFinite(numericW) || !Number.isFinite(numericH)) return;
     if (isInches) {
-      const w = Math.round(numericW / 3) * 3;
-      const h = Math.round(numericH / 3) * 3;
-      setWidthVal(Math.max(1, w));
-      setHeightVal(Math.max(1, h));
+      const w = Math.round(numericW / blockSizeInches) * blockSizeInches;
+      const h = Math.round(numericH / blockSizeInches) * blockSizeInches;
+      setWidthVal(Math.max(blockSizeInches, parseFloat(w.toFixed(2))));
+      setHeightVal(Math.max(blockSizeInches, parseFloat(h.toFixed(2))));
     } else if (isFeet) {
-      // 1 block = 0.25 ft
-      const w = Math.round(numericW / 0.25) * 0.25;
-      const h = Math.round(numericH / 0.25) * 0.25;
-      setWidthVal(parseFloat(Math.max(0.25, w).toFixed(2)));
-      setHeightVal(parseFloat(Math.max(0.25, h).toFixed(2)));
+      const w = Math.round(numericW / blockSizeFeet) * blockSizeFeet;
+      const h = Math.round(numericH / blockSizeFeet) * blockSizeFeet;
+      setWidthVal(parseFloat(Math.max(blockSizeFeet, w).toFixed(2)));
+      setHeightVal(parseFloat(Math.max(blockSizeFeet, h).toFixed(2)));
     }
   };
 
@@ -712,7 +715,7 @@ export function ControlPanel() {
                         : widthVal
                     }
                     step={
-                      sizeUnit === "feet" ? 0.25 : sizeUnit === "inches" ? 3 : 1
+                      sizeUnit === "feet" ? blockSizeFeet : sizeUnit === "inches" ? blockSizeInches : 1
                     }
                     onChange={(value) => {
                       setWidthVal(value);
@@ -736,7 +739,7 @@ export function ControlPanel() {
                         : heightVal
                     }
                     step={
-                      sizeUnit === "feet" ? 0.25 : sizeUnit === "inches" ? 3 : 1
+                      sizeUnit === "feet" ? blockSizeFeet : sizeUnit === "inches" ? blockSizeInches : 1
                     }
                     onChange={(value) => {
                       setHeightVal(value);
@@ -763,8 +766,8 @@ export function ControlPanel() {
                   <div className="mt-2 rounded-md border border-amber-300/60 bg-amber-50 dark:bg-amber-950/20 px-3 py-2 text-[11px] text-amber-800 dark:text-amber-200">
                     <div className="flex items-center justify-between gap-2">
                       <p>
-                        Each block equals 3 inches. Please use{" "}
-                        {isFeet ? "0.25 ft" : "3 inch"} increments.
+                        Each block equals {blockSizeInches} inches. Please use{" "}
+                        {isFeet ? `${blockSizeFeet.toFixed(2)} ft` : `${blockSizeInches} inch`} increments.
                       </p>
                       <button
                         type="button"
@@ -777,7 +780,7 @@ export function ControlPanel() {
                   </div>
                 )}
                 <p className="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-                  1 block = 3 inches.
+                  1 block = {blockSizeInches} inches.
                 </p>
               </section>
             )}
@@ -1087,9 +1090,9 @@ export function ControlPanel() {
                           }
                           step={
                             sizeUnit === "feet"
-                              ? 0.25
+                              ? blockSizeFeet
                               : sizeUnit === "inches"
-                              ? 3
+                              ? blockSizeInches
                               : 1
                           }
                           onChange={(value) => {
@@ -1115,9 +1118,9 @@ export function ControlPanel() {
                           }
                           step={
                             sizeUnit === "feet"
-                              ? 0.25
+                              ? blockSizeFeet
                               : sizeUnit === "inches"
-                              ? 3
+                              ? blockSizeInches
                               : 1
                           }
                           onChange={(value) => {

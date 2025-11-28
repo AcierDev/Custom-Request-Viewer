@@ -18,8 +18,11 @@ import {
   ShoppingBag,
   Info,
   X,
+  Repeat,
+  Globe,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { getDimensionsDetails } from "@/lib/utils";
 
 interface SharedDesignData {
   shareId: string;
@@ -35,6 +38,7 @@ interface CompanyLinksProps {
   colorPattern?: string;
   onCopyLink?: () => void;
   copied?: boolean;
+  useMini?: boolean;
 }
 
 const links = [
@@ -95,10 +99,53 @@ export function CompanyLinks({
   colorPattern,
   onCopyLink,
   copied = false,
+  useMini = false,
 }: CompanyLinksProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMobileInfo, setShowMobileInfo] = useState(false);
+  const [sizeUnit, setSizeUnit] = useState<"small" | "large" | "blocks">("small");
+  const [isMetric, setIsMetric] = useState(false);
   const isMobile = useIsMobile();
+
+  // Get the calculated dimensions (accounting for mini mode)
+  const calculatedDimensions = dimensions
+    ? getDimensionsDetails(dimensions, useMini)
+    : null;
+
+  // Cycle through units: small (in/cm) -> large (ft/m) -> blocks -> small
+  const cycleUnit = () => {
+    setSizeUnit((current) => {
+      if (current === "small") return "large";
+      if (current === "large") return "blocks";
+      return "small";
+    });
+  };
+
+  // Toggle between metric and imperial
+  const toggleMetric = () => setIsMetric((prev) => !prev);
+
+  // Format size display based on selected unit and metric/imperial
+  const formatSize = () => {
+    if (!calculatedDimensions) return null;
+    
+    const { inches, displayBlocks } = calculatedDimensions;
+    const cm = { width: inches.width * 2.54, height: inches.height * 2.54 };
+    
+    switch (sizeUnit) {
+      case "small":
+        if (isMetric) {
+          return `${cm.width.toFixed(1)} × ${cm.height.toFixed(1)} cm`;
+        }
+        return `${inches.width}" × ${inches.height}"`;
+      case "large":
+        if (isMetric) {
+          return `${(cm.width / 100).toFixed(2)} × ${(cm.height / 100).toFixed(2)} m`;
+        }
+        return `${(inches.width / 12).toFixed(2)}' × ${(inches.height / 12).toFixed(2)}'`;
+      case "blocks":
+        return `${displayBlocks.width} × ${displayBlocks.height} blocks`;
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -256,10 +303,28 @@ export function CompanyLinks({
                       {selectedDesign}
                     </Badge>
                   )}
-                  {dimensions && (
-                    <Badge variant="outline" className="text-sm">
-                      {dimensions.width * 3}" × {dimensions.height * 3}"
-                    </Badge>
+                  {calculatedDimensions && (
+                    <div className="flex items-center gap-1">
+                      <Badge 
+                        variant="outline" 
+                        className="text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-1"
+                        onClick={cycleUnit}
+                      >
+                        {formatSize()}
+                        <Repeat className="w-3 h-3 opacity-50" />
+                      </Badge>
+                      <button
+                        onClick={toggleMetric}
+                        className={`p-1 rounded transition-colors ${
+                          isMetric 
+                            ? "text-blue-500 bg-blue-50 dark:bg-blue-900/30" 
+                            : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        }`}
+                        title={isMetric ? "Switch to Imperial" : "Switch to Metric"}
+                      >
+                        <Globe className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   )}
                   {colorPattern && (
                     <Badge variant="outline" className="text-sm capitalize">
@@ -424,14 +489,30 @@ export function CompanyLinks({
               </div>
             )}
 
-            {dimensions && (
+            {calculatedDimensions && (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-500 dark:text-gray-400">
                   Size:
                 </span>
-                <Badge variant="outline" className="text-xs">
-                  {dimensions.width * 3}" × {dimensions.height * 3}"
+                <Badge 
+                  variant="outline" 
+                  className="text-xs cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-1"
+                  onClick={cycleUnit}
+                >
+                  {formatSize()}
+                  <Repeat className="w-2.5 h-2.5 opacity-50" />
                 </Badge>
+                <button
+                  onClick={toggleMetric}
+                  className={`p-0.5 rounded transition-colors ${
+                    isMetric 
+                      ? "text-blue-500 bg-blue-50 dark:bg-blue-900/30" 
+                      : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  }`}
+                  title={isMetric ? "Switch to Imperial" : "Switch to Metric"}
+                >
+                  <Globe className="w-3 h-3" />
+                </button>
               </div>
             )}
 

@@ -6,17 +6,39 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function getDimensionsDetails(dimensions: Dimensions) {
+// Block size constants
+export const BLOCK_SIZE_STANDARD = 3; // 3 inches per standard block
+export const BLOCK_SIZE_MINI = 2.65; // 2.65 inches per mini block
+
+export function getBlockSizeInches(useMini: boolean): number {
+  return useMini ? BLOCK_SIZE_MINI : BLOCK_SIZE_STANDARD;
+}
+
+export function getDimensionsDetails(dimensions: Dimensions, useMini: boolean = false) {
   // For this viewer, dimensions are already in blocks, not inches
-  // So we return the block dimensions directly
+  // When using minis, the block count is multiplied by 1.1 (more smaller blocks)
+  const blockSizeInches = getBlockSizeInches(useMini);
+  
+  // Calculate adjusted dimensions for display purposes only
+  // The rendering code applies the 1.1 multiplier separately in calculateBlockLayout
+  const adjustedWidth = useMini ? Math.ceil(dimensions.width * 1.1) : dimensions.width;
+  const adjustedHeight = useMini ? Math.ceil(dimensions.height * 1.1) : dimensions.height;
+  
   return {
     blocks: {
+      // Return original dimensions - rendering code handles the 1.1 multiplier
       width: dimensions.width,
       height: dimensions.height,
     },
+    displayBlocks: {
+      // Adjusted block count for display (actual rendered blocks)
+      width: adjustedWidth,
+      height: adjustedHeight,
+    },
     inches: {
-      width: dimensions.width * 3, // Each block is 3 inches
-      height: dimensions.height * 3,
+      // Use adjusted dimensions for accurate physical size display
+      width: parseFloat((adjustedWidth * blockSizeInches).toFixed(2)),
+      height: parseFloat((adjustedHeight * blockSizeInches).toFixed(2)),
     },
   };
 }

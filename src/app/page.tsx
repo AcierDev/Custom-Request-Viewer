@@ -32,6 +32,7 @@ export default function PreviewPage() {
     dimensions,
     selectedDesign,
     colorPattern,
+    useMini,
   } = useCustomStore();
   const { showUIControls } = viewSettings;
   const router = useRouter();
@@ -179,6 +180,7 @@ export default function PreviewPage() {
         colorPattern={colorPattern}
         onCopyLink={handleCopyLink}
         copied={copied}
+        useMini={useMini}
       />
 
       {/* Main canvas */}
