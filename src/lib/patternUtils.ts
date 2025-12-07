@@ -820,6 +820,16 @@ export function calculateBlockLayout(
   const offsetX = -totalWidth / 2 - 0.25 + (useMini ? 0.03 : 0);
   const offsetY = -totalHeight / 2 - 0.25 + (useMini ? 0.03 : 0);
 
+  // Compute center position to align with the blocks grid
+  const centerX =
+    offsetX +
+    blockSize / 2 +
+    ((adjustedModelWidth - 1) * blockSize * blockSpacing) / 2;
+  const centerY =
+    offsetY +
+    blockSize / 2 +
+    ((adjustedModelHeight - 1) * blockSize * blockSpacing) / 2;
+
   return {
     adjustedModelWidth,
     adjustedModelHeight,
@@ -827,5 +837,7 @@ export function calculateBlockLayout(
     totalHeight,
     offsetX,
     offsetY,
+    centerX,
+    centerY,
   };
 }
