@@ -5,6 +5,13 @@ import * as THREE from "three";
 import { useEffect, useMemo, useRef } from "react";
 import { useCustomStore } from "@/store/customStore";
 
+// Adjust this value to lighten the texture (0.0 to 1.0)
+// Higher values = lighter/brighter appearance
+// 0.2 provides a subtle lift to the dark grain
+const TEXTURE_BRIGHTNESS_BOOST = 0;
+
+const SIDE_TEXTURE_PATH = "/textures/wood-side-grain.jpg";
+
 interface BlockProps {
   position: [number, number, number];
   size: number;
@@ -18,11 +25,14 @@ interface BlockProps {
   isGeometric?: boolean;
   rotation?: number;
   reducedSize?: boolean;
+  grainTexturePaths?: string[]; // New prop for dynamic textures
+  grainOpacity?: number; // Opacity of the grain texture (0-1)
   textureVariation?: {
     scale: number;
     offsetX: number;
     offsetY: number;
     rotation: number;
+    textureIndex: number;
   };
 }
 
@@ -268,9 +278,6 @@ const wedgeGeometry = createWedgeGeometry();
 // Create a shared box geometry
 const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
 
-// Create texture loader outside components to reuse
-let textureCache: Record<string, THREE.Texture> = {};
-
 export function Block({
   position,
   size,
@@ -284,26 +291,75 @@ export function Block({
   isGeometric = false,
   rotation = 0,
   textureVariation = {
-    scale: 0.2,
+    scale: 0.2, // kept for compatibility but simplified in logic
     offsetX: 0,
     offsetY: 0,
     rotation: 0,
+    textureIndex: 0,
   },
+  grainTexturePaths = [], // Default to empty array
+  grainOpacity = .3, 
 }: BlockProps) {
   const [x, y, z] = position;
   const adjustedPosition: [number, number, number] = [x, y, z + height / 2];
   const meshRef = useRef<THREE.Mesh>(null);
 
-  // Load textures with caching - load only if wood grain is shown
-  const texturePaths = showWoodGrain
-    ? ["/textures/bw-wood-texture-4.jpg", "/textures/wood-side-grain.jpg"]
-    : [];
+  // Common onBeforeCompile for both materials
+  const onBeforeCompile = useMemo(() => {
+    return (shader: any) => {
+      shader.uniforms.uGrainOpacity = { value: grainOpacity };
+      
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <map_fragment>',
+        `
+        #ifdef USE_MAP
+          vec4 sampledDiffuseColor = texture2D( map, vMapUv );
+          #ifdef DECODE_VIDEO_TEXTURE
+            // inline decode video texture if needed, but usually not for simple maps
+            // defaulting to standard map behavior
+          #endif
+          
+          // Mix with white based on opacity (assuming multiplicative texture)
+          // refinedDiffuseColor = mix(white, textureColor, opacity)
+          vec4 mixedColor = mix(vec4(1.0), sampledDiffuseColor, uGrainOpacity);
+          
+          diffuseColor *= mixedColor;
+        #endif
+        `
+      );
+      
+      shader.fragmentShader = `uniform float uGrainOpacity;\n` + shader.fragmentShader;
+      
+      // Save reference to update uniform later
+      (shader as any).userData = { shader };
+    };
+  }, []); // Compile function doesn't need to change, we update uniform values directly
 
-  const textures = useTexture(texturePaths);
-  const topTexture = showWoodGrain ? textures[0] : null;
-  const sideTexture = showWoodGrain ? textures[1] : null;
+  // Load textures
+  // We load all possible grain textures + the side texture
+  const allTexturePaths = useMemo(
+    () => (showWoodGrain && grainTexturePaths.length > 0 ? [...grainTexturePaths, SIDE_TEXTURE_PATH] : []),
+    [showWoodGrain, grainTexturePaths]
+  );
+  
+  const textures = useTexture(allTexturePaths);
+  
+  // Use the texture index from variation, or default to 0
+  const textureIndex = textureVariation.textureIndex !== undefined 
+    ? textureVariation.textureIndex % Math.max(1, grainTexturePaths.length)
+    : 0;
 
-  // Create unique textures with useMemo to prevent unnecessary recreation
+  // Ensure we don't try to access out of bounds or undefined textures
+  const topTexture = (showWoodGrain && textures.length > 0 && textureIndex < textures.length - 1) 
+    ? textures[textureIndex] 
+    : null;
+    
+  // Side texture is always the last one in the list
+  const sideTexture = (showWoodGrain && textures.length > 0) 
+    ? textures[textures.length - 1] 
+    : null;
+
+  // Create unique textures with useMemo
   const { uniqueTopTexture, uniqueSideTexture } = useMemo(() => {
     if (!showWoodGrain)
       return { uniqueTopTexture: null, uniqueSideTexture: null };
@@ -312,20 +368,14 @@ export function Block({
     const side = sideTexture?.clone();
 
     if (top) {
-      // Process top texture
-      top.wrapS = top.wrapT = THREE.RepeatWrapping;
-      // Always use the provided textureVariation regardless of isGeometric
-      const topScale = textureVariation.scale;
-      top.repeat.set(topScale, topScale);
-      top.anisotropy = 8; // Reduced from 16 for performance
-
-      // Always use the provided textureVariation for offsets
-      const topOffsetX = textureVariation.offsetX;
-      const topOffsetY = textureVariation.offsetY;
-      const textureRotation = textureVariation.rotation;
-
-      top.rotation = textureRotation;
-      top.offset.set(topOffsetX, topOffsetY);
+      // Process top texture - full face mapping
+      // We don't need complex repeating logic for the full face textures
+      // But we can still apply the rotation from textureVariation if desired
+      top.center.set(0.5, 0.5);
+      top.rotation = 0; // Disabled rotation as per user request
+            
+      // Fix color space if needed (usually handled by THREE but can ensure sRGB)
+      top.colorSpace = THREE.SRGBColorSpace;
     }
 
     if (side) {
@@ -333,39 +383,41 @@ export function Block({
       side.wrapS = side.wrapT = THREE.RepeatWrapping;
       const sideScale = 0.2;
       side.repeat.set(sideScale, sideScale);
-      side.anisotropy = 8; // Reduced from 16 for performance
+      
+      // Fix color space
+      side.colorSpace = THREE.SRGBColorSpace;
     }
 
     return { uniqueTopTexture: top, uniqueSideTexture: side };
-  }, [showWoodGrain, topTexture, sideTexture, textureVariation]);
+  }, [showWoodGrain, topTexture, sideTexture, textureVariation.rotation]);
 
-  // Create materials with better memoization pattern
-  const materialKey = `${color}-${isHovered}-${showWoodGrain}-${showColorInfo}`;
-
-  // Create material array for geometric blocks
-  // Material 0: Top and bottom faces (use top texture)
-  // Material 1: Side faces (use side texture)
+  // Create materials with useMemo
   const geometricMaterials = useMemo(
-    () => [
-      // Material for top/bottom faces
-      new THREE.MeshStandardMaterial({
+    () => {
+      const topMat = new THREE.MeshStandardMaterial({
         map: showWoodGrain ? uniqueTopTexture : null,
         color,
         roughness: 0.8,
         metalness: 0.05,
-        emissive: isHovered && showColorInfo ? color : "#000000",
-        emissiveIntensity: isHovered && showColorInfo ? 0.5 : 0,
-      }),
-      // Material for side faces
-      new THREE.MeshStandardMaterial({
+        emissive: isHovered && showColorInfo ? color : color, // Always use base color for tinting
+        emissiveIntensity:
+          (isHovered && showColorInfo ? 0.5 : 0) + TEXTURE_BRIGHTNESS_BOOST,
+      });
+      topMat.onBeforeCompile = onBeforeCompile;
+
+      const sideMat = new THREE.MeshStandardMaterial({
         map: showWoodGrain ? uniqueSideTexture : null,
         color,
         roughness: 0.8,
         metalness: 0.05,
-        emissive: isHovered && showColorInfo ? color : "#000000",
-        emissiveIntensity: isHovered && showColorInfo ? 0.5 : 0,
-      }),
-    ],
+        emissive: isHovered && showColorInfo ? color : color,
+        emissiveIntensity:
+          (isHovered && showColorInfo ? 0.5 : 0) + TEXTURE_BRIGHTNESS_BOOST,
+      });
+      sideMat.onBeforeCompile = onBeforeCompile;
+
+      return [topMat, sideMat];
+    },
     [
       uniqueTopTexture,
       uniqueSideTexture,
@@ -373,24 +425,29 @@ export function Block({
       isHovered,
       showWoodGrain,
       showColorInfo,
+      onBeforeCompile,
     ]
   );
 
-  // Create a single material for non-geometric blocks (box geometry handles UVs automatically)
+  // Create a single material for non-geometric blocks
   const boxMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
+    () => {
+      const mat = new THREE.MeshStandardMaterial({
         map: showWoodGrain ? uniqueTopTexture : null,
         color,
         roughness: 0.8,
         metalness: 0.05,
-        emissive: isHovered && showColorInfo ? color : "#000000",
-        emissiveIntensity: isHovered && showColorInfo ? 0.5 : 0,
-      }),
-    [uniqueTopTexture, color, isHovered, showWoodGrain, showColorInfo]
+        emissive: isHovered && showColorInfo ? color : color,
+        emissiveIntensity:
+          (isHovered && showColorInfo ? 0.5 : 0) + TEXTURE_BRIGHTNESS_BOOST,
+      });
+      mat.onBeforeCompile = onBeforeCompile;
+      return mat;
+    },
+    [uniqueTopTexture, color, isHovered, showWoodGrain, showColorInfo, onBeforeCompile]
   );
 
-  // Update material properties for existing material instead of creating new materials
+  // Update material properties for existing material
   useEffect(() => {
     if (meshRef.current) {
       const material = meshRef.current.material;
@@ -398,18 +455,38 @@ export function Block({
       if (Array.isArray(material)) {
         material.forEach((m) => {
           if (m instanceof THREE.MeshStandardMaterial) {
-            m.emissive.set(isHovered && showColorInfo ? color : "#000000");
-            m.emissiveIntensity = isHovered && showColorInfo ? 0.5 : 0;
+            m.emissive.set(isHovered && showColorInfo ? color : color);
+            m.emissiveIntensity =
+              (isHovered && showColorInfo ? 0.5 : 0) + TEXTURE_BRIGHTNESS_BOOST;
             m.needsUpdate = true;
           }
         });
       } else if (material instanceof THREE.MeshStandardMaterial) {
-        material.emissive.set(isHovered && showColorInfo ? color : "#000000");
-        material.emissiveIntensity = isHovered && showColorInfo ? 0.5 : 0;
+        material.emissive.set(isHovered && showColorInfo ? color : color);
+        material.emissiveIntensity =
+          (isHovered && showColorInfo ? 0.5 : 0) + TEXTURE_BRIGHTNESS_BOOST;
         material.needsUpdate = true;
       }
     }
   }, [isHovered, color, showColorInfo]);
+
+  // Update grain opacity uniform
+  useEffect(() => {
+    if (meshRef.current) {
+      const material = meshRef.current.material;
+      const updateShader = (m: THREE.Material) => {
+        if (m instanceof THREE.MeshStandardMaterial && m.userData.shader) {
+          m.userData.shader.uniforms.uGrainOpacity.value = grainOpacity;
+        }
+      };
+
+      if (Array.isArray(material)) {
+        material.forEach(updateShader);
+      } else {
+        updateShader(material);
+      }
+    }
+  }, [grainOpacity]);
 
   const { useMini } = useCustomStore();
 

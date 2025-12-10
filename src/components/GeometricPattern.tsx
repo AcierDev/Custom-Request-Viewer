@@ -26,11 +26,20 @@ import { useSpring, animated } from "@react-spring/three";
 // Memoized Block component to prevent unnecessary re-renders
 const MemoizedBlock = memo(Block);
 
+import { getGrainTextures } from "@/app/actions";
+
 export function GeometricPattern({
   showColorInfo = true,
   showWoodGrain = true,
   customDesign = null,
 }: PatternProps & { customDesign?: any }) {
+  const [grainTexturePaths, setGrainTexturePaths] = useState<string[]>([]);
+  
+  useEffect(() => {
+    // Load grain textures dynamically
+    getGrainTextures().then(setGrainTexturePaths);
+  }, []);
+
   const customStore = useCustomStore();
   const {
     dimensions: storeDimensions,
@@ -298,6 +307,7 @@ export function GeometricPattern({
                 isGeometric={true}
                 rotation={rotation}
                 textureVariation={textureVariation}
+                grainTexturePaths={grainTexturePaths}
                 onHover={undefined}
                 onClick={undefined}
               />

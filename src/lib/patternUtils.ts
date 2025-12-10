@@ -38,6 +38,7 @@ export interface TextureVariation {
   offsetX: number;
   offsetY: number;
   rotation: number;
+  textureIndex: number;
 }
 
 export function getColorEntries(selectedDesign: string, customPalette: any[], isReversed: boolean = false) {
@@ -111,6 +112,8 @@ export function initializeTextureVariations(
           offsetX: Math.abs((Math.sin(x * 2.5) * Math.cos(y * 1.7)) % 1),
           offsetY: Math.abs((Math.cos(x * 1.8) * Math.sin(y * 2.2)) % 1),
           rotation: (Math.sin(x * y) * Math.PI) / 6,
+          // Assign a random texture index from 0 to 13 (14 textures total)
+          textureIndex: Math.floor(Math.random() * 14),
         }))
     );
 }
