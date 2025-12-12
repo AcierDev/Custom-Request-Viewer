@@ -69,9 +69,9 @@ export function DesignCanvas({ className, camera }: DesignCanvasProps) {
         shadows
         className={className || "w-full h-full"}
         camera={{
-          position: camera?.position || [20, 20, 20],
+          position: camera?.position || [0, 0, 20],
           fov: camera?.fov ?? 40,
-          zoom: camera?.zoom ?? 1.4,
+          zoom: camera?.zoom ?? 1,
         }}
       >
         <Suspense fallback={null}>

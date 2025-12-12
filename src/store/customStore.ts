@@ -68,7 +68,7 @@ export const hoverStore = create<HoverState>((set) => ({
 }));
 
 interface ViewSettings {
-  showRuler: boolean;
+
   showWoodGrain: boolean;
   showColorInfo: boolean;
   showUIControls: boolean;
@@ -123,7 +123,7 @@ interface CustomStore extends PaletteCreationStore {
   setIsRotated: (rotated: boolean) => void;
   setUseMini: (useMini: boolean) => void;
   setShowUIControls: (show: boolean) => void;
-  setShowRuler: (show: boolean) => void;
+
   setBackgroundColor: (hex: string) => void;
   setLighting: (updater: Partial<LightingSettings>) => void;
   setSizeUnit: (unit: SizeUnit) => void;
@@ -166,7 +166,7 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
   isRotated: false,
   useMini: false,
   viewSettings: {
-    showRuler: false,
+
     showWoodGrain: true,
     showColorInfo: false, // Disabled to remove hover effects
     showUIControls: true,
@@ -269,10 +269,7 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
     set((state) => ({
       viewSettings: { ...state.viewSettings, showUIControls: show },
     })),
-  setShowRuler: (show) =>
-    set((state) => ({
-      viewSettings: { ...state.viewSettings, showRuler: show },
-    })),
+
   setBackgroundColor: (hex) => set({ backgroundColor: hex }),
   setLighting: (updater) =>
     set((state) => ({ lighting: { ...state.lighting, ...updater } })),

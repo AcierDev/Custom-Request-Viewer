@@ -7,3 +7,4 @@ export function hashString(input: string): string {
   return (hash >>> 0).toString(36);
 }
 
+

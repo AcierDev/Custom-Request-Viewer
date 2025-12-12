@@ -7,7 +7,7 @@ import { useRef, useEffect, useState, useMemo, memo, useCallback } from "react";
 import { Html } from "@react-three/drei";
 import { Block } from "./Block";
 import { PlywoodBase } from "./PlywoodBase";
-import { Ruler } from "./Ruler";
+
 import { ItemDesigns } from "@/typings/types";
 import {
   PatternProps,
@@ -380,16 +380,6 @@ export function GeometricPattern({
 
         {/* Use the pre-computed block grid */}
         {blockGrid}
-
-        {/* Ruler */}
-        <group position={[layoutDetails.centerX, layoutDetails.centerY, 0]}>
-          <Ruler
-            width={totalWidth}
-            height={totalHeight}
-            useMini={useMini}
-            showRuler={viewSettings.showRuler}
-          />
-        </group>
       </group>
     </>
   );

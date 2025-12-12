@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+
 import { useCustomStore } from "@/store/customStore";
 import { useCompareStore } from "@/store/compareStore";
 import {
@@ -101,7 +102,6 @@ const LIGHTING_PRESETS: Record<
 
 export function ControlPanel() {
   const {
-    backgroundColor,
     setBackgroundColor,
     lighting,
     setLighting,
@@ -113,7 +113,6 @@ export function ControlPanel() {
     setShowUIControls,
     createSharedDesign,
     selectedDesign,
-    setSelectedDesign,
     setSelectedDesignWithSharedHandling,
     colorPattern,
     setColorPattern,
@@ -124,12 +123,13 @@ export function ControlPanel() {
     isRotated,
     setIsRotated,
     useMini,
-    setUseMini,
     originalSharedData,
     hasChangesFromShared,
     revertToSharedDesign,
-    setShowRuler,
+
   } = useCustomStore();
+  
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Mobile detection
   const isMobile = useIsMobile();
@@ -176,9 +176,9 @@ export function ControlPanel() {
   // Check if we're viewing a shared design
   const isViewingSharedDesign = originalSharedData !== null;
 
-  // Tab state - default to "scene" for shared designs, "design" for new designs
+  // Tab state - default to "scene" for shared designs (single or set), "design" for new designs
   const [activeTab, setActiveTab] = useState(
-    isViewingSharedDesign ? "scene" : "design"
+    isViewingSharedDesign || sharedSetId ? "scene" : "design"
   );
 
   // Get the block size in inches based on mini mode
@@ -525,60 +525,31 @@ export function ControlPanel() {
     }
   };
 
-  // Animation variants for mobile (bottom sheet) vs desktop (side panel)
-  const panelVariants = {
-    hidden: isMobile ? { opacity: 0, y: "100%" } : { opacity: 0, x: 20 },
-    visible: isMobile ? { opacity: 1, y: 0 } : { opacity: 1, x: 0 },
-    exit: isMobile ? { opacity: 0, y: "100%" } : { opacity: 0, x: 20 },
-  };
+
 
   return (
-    <motion.aside
-      initial="hidden"
-      animate="visible"
-      exit="exit"
-      variants={panelVariants}
-      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+    <div
       className={`
-        fixed z-50 border border-gray-200/70 dark:border-gray-700/70 
-        bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-xl 
-        overflow-hidden flex flex-col
+        fixed z-50 transition-transform duration-300 ease-in-out
         ${
           isMobile
-            ? "inset-x-0 bottom-0 rounded-t-2xl max-h-[85vh]"
-            : "top-20 right-4 w-[360px] max-w-[94vw] max-h-[85vh] rounded-2xl"
+            ? "inset-x-0 top-16"
+            : "top-16 right-4 w-[360px] max-w-[94vw]"
         }
+        ${isExpanded ? "translate-y-0" : "translate-y-[calc(-100%+40px)]"}
       `}
     >
-      {/* Mobile drag handle */}
-      {isMobile && (
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
-        </div>
-      )}
-
-      <div
-        className={`${
-          isMobile ? "px-4 pb-6 pt-2" : "p-4"
-        } space-y-4 overflow-y-auto`}
-      >
+      <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-xl border-x border-b border-gray-200/70 dark:border-gray-700/70 rounded-b-2xl overflow-hidden max-h-[85vh] flex flex-col">
+        <div
+          className={`${
+            isMobile ? "px-4 pb-6 pt-4" : "p-4"
+          } space-y-4 overflow-y-auto`}
+        >
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Scene Settings
           </h2>
-          <div className="flex items-center gap-2">
-            <button
-              aria-label="Hide settings"
-              onClick={() => setShowUIControls(false)}
-              className={`
-                flex items-center gap-1 rounded-md border border-gray-300 dark:border-gray-700 
-                hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors
-                ${isMobile ? "p-2" : "text-xs px-2 py-1"}
-              `}
-            >
-              {isMobile ? <X className="w-4 h-4" /> : "Hide"}
-            </button>
-          </div>
+
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -1428,16 +1399,7 @@ export function ControlPanel() {
                 </div>
               </div>
               <div className="mt-3 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    Show Ruler
-                  </span>
-                  <Switch
-                    checked={viewSettings.showRuler}
-                    onCheckedChange={setShowRuler}
-                    className="data-[state=checked]:bg-blue-600"
-                  />
-                </div>
+
               </div>
             </section>
           </TabsContent>
@@ -1712,7 +1674,25 @@ export function ControlPanel() {
           </TabsContent>
         </Tabs>
       </div>
-    </motion.aside>
+      </div>
+
+      {/* Toggle Handle */}
+      <div className="flex justify-center">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-2 px-6 py-2 rounded-b-xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-x border-b border-gray-200/70 dark:border-gray-700/70 shadow-md hover:bg-white dark:hover:bg-gray-900 transition-colors"
+        >
+          <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+            Settings
+          </span>
+          {isExpanded ? (
+            <ChevronUp className="w-4 h-4 text-gray-500" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-gray-500" />
+          )}
+        </button>
+      </div>
+    </div>
   );
 }
 
