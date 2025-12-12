@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCustomStore } from "@/store/customStore";
+import { useCompareStore } from "@/store/compareStore";
 import {
   Share2,
   Copy,
@@ -14,6 +15,8 @@ import {
   AlertCircle,
   X,
   GripHorizontal,
+  Layers,
+  Plus,
 } from "lucide-react";
 import { ItemDesigns } from "@/typings/types";
 import { getBackgroundColorForLighting, getBlockSizeInches } from "@/lib/utils";
@@ -139,6 +142,17 @@ export function ControlPanel() {
     type: "success" | "error" | "info";
     text: string;
   } | null>(null);
+
+  const {
+    designs: shelfDesigns,
+    addCurrentDesignToShelf,
+    createSharedDesignSet,
+    setId: sharedSetId,
+  } = useCompareStore();
+
+  const [shelfShareableLink, setShelfShareableLink] = useState("");
+  const [isGeneratingSet, setIsGeneratingSet] = useState(false);
+  const [copiedSetLink, setCopiedSetLink] = useState(false);
   const showShareMessage = (
     type: "success" | "error" | "info",
     text: string,
@@ -193,7 +207,6 @@ export function ControlPanel() {
   useEffect(() => {
     setWidthVal(unitDimensions.w);
     setHeightVal(unitDimensions.h);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unitDimensions.w, unitDimensions.h, sizeUnit]);
 
   // Apply size changes immediately while typing, but prevent infinite loops
@@ -364,7 +377,6 @@ export function ControlPanel() {
       selectedPreset
     );
     setBackgroundColor(adjustedBackgroundColor);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handlePresetClick = (key: LightingPresetKey) => {
@@ -472,17 +484,52 @@ export function ControlPanel() {
     }, 2000);
   };
 
+  const handleAddToShelf = () => {
+    addCurrentDesignToShelf();
+    showShareMessage("success", "Added current design to the shelf.");
+  };
+
+  const handleGenerateSetLink = async () => {
+    setIsGeneratingSet(true);
+    setShareMessage(null);
+
+    try {
+      const result = await createSharedDesignSet();
+      if (result.success) {
+        setShelfShareableLink(result.setUrl);
+        showShareMessage("success", "Shelf link is ready.");
+        setActiveTab("share");
+        await navigator.clipboard.writeText(result.setUrl);
+        setCopiedSetLink(true);
+        window.setTimeout(() => setCopiedSetLink(false), 2000);
+      } else {
+        showShareMessage("error", result.error);
+      }
+    } catch (error) {
+      console.error("Error generating shelf link:", error);
+      showShareMessage("error", "Failed to generate shelf link.");
+    } finally {
+      setIsGeneratingSet(false);
+    }
+  };
+
+  const handleCopySetLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shelfShareableLink);
+      setCopiedSetLink(true);
+      showShareMessage("success", "Shelf link copied to clipboard.");
+      window.setTimeout(() => setCopiedSetLink(false), 2000);
+    } catch (error) {
+      console.error("Failed to copy shelf link:", error);
+      showShareMessage("error", "Failed to copy shelf link.");
+    }
+  };
+
   // Animation variants for mobile (bottom sheet) vs desktop (side panel)
   const panelVariants = {
-    hidden: isMobile
-      ? { opacity: 0, y: "100%" }
-      : { opacity: 0, x: 20 },
-    visible: isMobile
-      ? { opacity: 1, y: 0 }
-      : { opacity: 1, x: 0 },
-    exit: isMobile
-      ? { opacity: 0, y: "100%" }
-      : { opacity: 0, x: 20 },
+    hidden: isMobile ? { opacity: 0, y: "100%" } : { opacity: 0, x: 20 },
+    visible: isMobile ? { opacity: 1, y: 0 } : { opacity: 1, x: 0 },
+    exit: isMobile ? { opacity: 0, y: "100%" } : { opacity: 0, x: 20 },
   };
 
   return (
@@ -496,9 +543,10 @@ export function ControlPanel() {
         fixed z-50 border border-gray-200/70 dark:border-gray-700/70 
         bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-xl 
         overflow-hidden flex flex-col
-        ${isMobile
-          ? "inset-x-0 bottom-0 rounded-t-2xl max-h-[85vh]"
-          : "top-20 right-4 w-[360px] max-w-[94vw] max-h-[85vh] rounded-2xl"
+        ${
+          isMobile
+            ? "inset-x-0 bottom-0 rounded-t-2xl max-h-[85vh]"
+            : "top-20 right-4 w-[360px] max-w-[94vw] max-h-[85vh] rounded-2xl"
         }
       `}
     >
@@ -509,7 +557,11 @@ export function ControlPanel() {
         </div>
       )}
 
-      <div className={`${isMobile ? "px-4 pb-6 pt-2" : "p-4"} space-y-4 overflow-y-auto`}>
+      <div
+        className={`${
+          isMobile ? "px-4 pb-6 pt-2" : "p-4"
+        } space-y-4 overflow-y-auto`}
+      >
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
             Scene Settings
@@ -524,11 +576,7 @@ export function ControlPanel() {
                 ${isMobile ? "p-2" : "text-xs px-2 py-1"}
               `}
             >
-              {isMobile ? (
-                <X className="w-4 h-4" />
-              ) : (
-                "Hide"
-              )}
+              {isMobile ? <X className="w-4 h-4" /> : "Hide"}
             </button>
           </div>
         </div>
@@ -716,7 +764,11 @@ export function ControlPanel() {
                         : widthVal
                     }
                     step={
-                      sizeUnit === "feet" ? blockSizeFeet : sizeUnit === "inches" ? blockSizeInches : 1
+                      sizeUnit === "feet"
+                        ? blockSizeFeet
+                        : sizeUnit === "inches"
+                        ? blockSizeInches
+                        : 1
                     }
                     onChange={(value) => {
                       setWidthVal(value);
@@ -740,7 +792,11 @@ export function ControlPanel() {
                         : heightVal
                     }
                     step={
-                      sizeUnit === "feet" ? blockSizeFeet : sizeUnit === "inches" ? blockSizeInches : 1
+                      sizeUnit === "feet"
+                        ? blockSizeFeet
+                        : sizeUnit === "inches"
+                        ? blockSizeInches
+                        : 1
                     }
                     onChange={(value) => {
                       setHeightVal(value);
@@ -768,7 +824,10 @@ export function ControlPanel() {
                     <div className="flex items-center justify-between gap-2">
                       <p>
                         Each block equals {blockSizeInches} inches. Please use{" "}
-                        {isFeet ? `${blockSizeFeet.toFixed(2)} ft` : `${blockSizeInches} inch`} increments.
+                        {isFeet
+                          ? `${blockSizeFeet.toFixed(2)} ft`
+                          : `${blockSizeInches} inch`}{" "}
+                        increments.
                       </p>
                       <button
                         type="button"
@@ -1385,6 +1444,95 @@ export function ControlPanel() {
 
           {/* Share Tab */}
           <TabsContent value="share" className="space-y-4">
+            {/* Multi-design shelf sharing */}
+            <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/70 dark:bg-gray-900/70 shadow-sm p-3">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                  <Layers className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    Design Shelf
+                  </h3>
+                  <p className="text-xs text-gray-600 dark:text-gray-300">
+                    Add multiple designs, then share one link.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 mb-3">
+                <button
+                  onClick={handleAddToShelf}
+                  className="flex-1 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-md px-3 py-2 text-xs font-medium hover:bg-gray-800 dark:hover:bg-white transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Current
+                </button>
+                <button
+                  onClick={handleGenerateSetLink}
+                  disabled={isGeneratingSet || shelfDesigns.length === 0}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-md px-3 py-2 text-xs font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isGeneratingSet ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Sharing...
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="w-4 h-4" />
+                      Share Shelf
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="text-xs text-gray-600 dark:text-gray-400">
+                Shelf contains{" "}
+                <span className="font-medium">{shelfDesigns.length}</span>{" "}
+                design{shelfDesigns.length === 1 ? "" : "s"}.
+              </div>
+
+              {(shelfShareableLink || sharedSetId) && (
+                <div className="mt-3 space-y-2">
+                  {sharedSetId && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 rounded">
+                      Set ID: {sharedSetId}
+                    </div>
+                  )}
+                  {shelfShareableLink && (
+                    <div className="flex items-center gap-2">
+                      <input
+                        value={shelfShareableLink}
+                        readOnly
+                        className="flex-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded px-3 py-2 text-xs"
+                      />
+                      <button
+                        onClick={handleCopySetLink}
+                        className={`px-3 py-2 rounded-md text-xs font-medium transition-colors ${
+                          copiedSetLink
+                            ? "bg-green-600 hover:bg-green-700 text-white"
+                            : "bg-blue-600 hover:bg-blue-700 text-white"
+                        }`}
+                      >
+                        {copiedSetLink ? (
+                          <>
+                            <Check className="w-3 h-3 mr-1 inline" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3 mr-1 inline" />
+                            Copy
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+
             {/* For shared designs that haven't been modified - show copy link option */}
             {isViewingSharedDesign && !hasChangesFromShared && (
               <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/70 dark:bg-gray-900/70 shadow-sm p-3">

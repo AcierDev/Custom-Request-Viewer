@@ -128,6 +128,16 @@ interface CustomStore extends PaletteCreationStore {
   setLighting: (updater: Partial<LightingSettings>) => void;
   setSizeUnit: (unit: SizeUnit) => void;
   setCustomPalette: (palette: Array<{ hex: string; name?: string }>) => void;
+  getShareableDesignData: () => {
+    dimensions: Dimensions;
+    selectedDesign: ItemDesigns;
+    colorPattern: ColorPattern;
+    orientation: "horizontal" | "vertical";
+    isReversed: boolean;
+    customPalette: Array<{ hex: string; name?: string }>;
+    isRotated: boolean;
+    useMini: boolean;
+  };
   createSharedDesign: (
     userId?: string,
     email?: string
@@ -140,6 +150,7 @@ interface CustomStore extends PaletteCreationStore {
   loadFromShareableData: (data: string) => boolean;
   loadFromDatabaseData: (designData: any) => boolean;
   setOriginalSharedData: (data: any) => void;
+  clearSharedDesignTracking: () => void;
   revertToSharedDesign: () => void;
   checkForChanges: () => void;
 }
@@ -191,7 +202,7 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
     set(() => {
       // Get the block size based on mini mode
       const blockSizeInches = getBlockSizeInches(get().useMini);
-      
+
       // Convert provided units back to blocks for storage
       let blocksW = width;
       let blocksH = height;
@@ -270,10 +281,9 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
     set({ customPalette });
     get().checkForChanges();
   },
-  createSharedDesign: async (userId?: string, email?: string) => {
+  getShareableDesignData: () => {
     const state = get();
-
-    const shareableState = {
+    return {
       dimensions: state.dimensions,
       selectedDesign: state.selectedDesign,
       colorPattern: state.colorPattern,
@@ -283,6 +293,9 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
       isRotated: state.isRotated,
       useMini: state.useMini,
     };
+  },
+  createSharedDesign: async (userId?: string, email?: string) => {
+    const shareableState = get().getShareableDesignData();
 
     try {
       const response = await fetch("/api/shared-designs", {
@@ -348,7 +361,7 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
 
       set({
         dimensions: designData.dimensions,
-        selectedDesign: ItemDesigns.Custom, // Always set to Custom for shared designs
+        selectedDesign: designData.selectedDesign,
         colorPattern: designData.colorPattern,
         orientation: designData.orientation,
         isReversed: designData.isReversed,
@@ -371,12 +384,15 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
       hasChangesFromShared: false,
     });
   },
+  clearSharedDesignTracking: () => {
+    set({ originalSharedData: null, hasChangesFromShared: false });
+  },
   revertToSharedDesign: () => {
     const originalData = get().originalSharedData;
     if (originalData) {
       set({
         dimensions: originalData.dimensions,
-        selectedDesign: ItemDesigns.Custom, // Always revert to Custom for shared designs
+        selectedDesign: originalData.selectedDesign,
         colorPattern: originalData.colorPattern,
         orientation: originalData.orientation,
         isReversed: originalData.isReversed,

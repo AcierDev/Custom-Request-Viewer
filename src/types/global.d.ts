@@ -1,5 +1,9 @@
-/// <reference types="react" />
+import type React from "react";
 
-declare namespace JSX {
-  interface Element extends React.ReactElement<any, any> {}
+declare global {
+  namespace JSX {
+    type Element = React.ReactElement<any, any>;
+  }
 }
+
+export {};

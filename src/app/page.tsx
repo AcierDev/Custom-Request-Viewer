@@ -9,10 +9,12 @@ import { ShareButton } from "@/components/ShareButton";
 import { PaletteDesignPrompt } from "@/components/PaletteDesignPrompt";
 import { CompanyLinks } from "@/components/CompanyLinks";
 import { MobileTouchHint } from "@/components/MobileTouchHint";
+import { CompareShelfWithThumbnails } from "@/components/CompareShelfWithThumbnails";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2, ArrowLeft, Settings, Share2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { useCompareStore } from "@/store/compareStore";
 
 interface SharedDesignData {
   shareId: string;
@@ -24,11 +26,14 @@ interface SharedDesignData {
 export default function PreviewPage() {
   const [mounted, setMounted] = useState(false);
   const [shareId, setShareId] = useState<string | null>(null);
+  const [setId, setSetId] = useState<string | null>(null);
   const {
     viewSettings,
     backgroundColor,
     setShowUIControls,
     loadFromDatabaseData,
+    loadFromShareableData,
+    clearSharedDesignTracking,
     dimensions,
     selectedDesign,
     colorPattern,
@@ -45,6 +50,8 @@ export default function PreviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const { designs: shelfDesigns, activeDesignId } = useCompareStore();
+
   // Client-side only search params check
   useEffect(() => {
     setMounted(true);
@@ -52,6 +59,7 @@ export default function PreviewPage() {
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       setShareId(urlParams.get("shareId"));
+      setSetId(urlParams.get("setId"));
     }
 
     // Trigger resize event to ensure canvas renders correctly
@@ -61,11 +69,11 @@ export default function PreviewPage() {
 
   // Auto-hide controls on mobile for shared designs
   useEffect(() => {
-    if (mounted && isMobile && shareId) {
+    if (mounted && isMobile && (shareId || setId)) {
       // On mobile with a shared design, hide controls by default
       setShowUIControls(false);
     }
-  }, [mounted, isMobile, shareId, setShowUIControls]);
+  }, [mounted, isMobile, shareId, setId, setShowUIControls]);
 
   // Load shared design from query param
   useEffect(() => {
@@ -105,10 +113,68 @@ export default function PreviewPage() {
       }
     };
 
-    if (mounted && shareId) {
+    if (mounted && shareId && !setId) {
       loadSharedDesign(shareId);
     }
-  }, [mounted, shareId, loadFromDatabaseData]);
+  }, [mounted, shareId, setId, loadFromDatabaseData]);
+
+  // Load shared design set from query param
+  useEffect(() => {
+    const loadSharedSet = async (id: string) => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const res = await fetch(
+          `/api/shared-design-sets?id=${encodeURIComponent(id)}`
+        );
+
+        if (!res.ok) {
+          if (res.status === 404) {
+            setError(
+              "This shared design set could not be found. It may have expired or been removed."
+            );
+          } else {
+            setError("Failed to load the shared design set. Please try again.");
+          }
+          return;
+        }
+
+        const data = await res.json();
+        useCompareStore.getState().hydrateFromSharedSet(data);
+
+        // This is a multi-design view; don't show shared-design revert UI.
+        clearSharedDesignTracking();
+      } catch (err) {
+        console.error("Error loading shared design set:", err);
+        setError("Failed to load the shared design set. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (mounted && setId) {
+      loadSharedSet(setId);
+    }
+  }, [mounted, setId, clearSharedDesignTracking]);
+
+  // When a shelf design is selected, load it into the main viewer.
+  useEffect(() => {
+    if (!mounted) return;
+    if (!activeDesignId) return;
+
+    const active = shelfDesigns.find((d) => d.id === activeDesignId);
+    if (!active) return;
+
+    clearSharedDesignTracking();
+    loadFromShareableData(JSON.stringify(active.designData));
+  }, [
+    mounted,
+    activeDesignId,
+    shelfDesigns,
+    loadFromShareableData,
+    clearSharedDesignTracking,
+  ]);
 
   const handleCopyLink = async () => {
     try {
@@ -189,7 +255,7 @@ export default function PreviewPage() {
       </div>
 
       {/* Touch hint for mobile users viewing shared designs */}
-      {isMobile && shareId && <MobileTouchHint />}
+      {isMobile && (shareId || setId) && <MobileTouchHint />}
 
       {/* Control Panel or Floating Controls */}
       {showUIControls ? (
@@ -198,23 +264,23 @@ export default function PreviewPage() {
         <>
           {/* Desktop floating controls */}
           {!isMobile && (
-        <div className="absolute top-4 right-4 z-50 flex gap-2">
-          <ShareButton />
-          <button
-            aria-label="Show settings"
-            onClick={() => setShowUIControls(true)}
-            className="px-3 py-1.5 text-sm rounded-md border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow hover:bg-white dark:hover:bg-gray-800"
-          >
-            Settings
-          </button>
-        </div>
-      )}
+            <div className="absolute top-4 right-4 z-50 flex gap-2">
+              <ShareButton />
+              <button
+                aria-label="Show settings"
+                onClick={() => setShowUIControls(true)}
+                className="px-3 py-1.5 text-sm rounded-md border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow hover:bg-white dark:hover:bg-gray-800"
+              >
+                Settings
+              </button>
+            </div>
+          )}
 
           {/* Mobile floating action buttons */}
           {isMobile && (
             <div className="fixed bottom-6 right-4 z-40 flex flex-col gap-3">
               {/* Share FAB */}
-              {shareId && (
+              {(shareId || setId) && (
                 <button
                   onClick={handleCopyLink}
                   className="w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all"
@@ -238,7 +304,10 @@ export default function PreviewPage() {
       )}
 
       {/* Palette Design Prompt - only show when not viewing a shared design */}
-      {!shareId && <PaletteDesignPrompt />}
+      {!shareId && !setId && <PaletteDesignPrompt />}
+
+      {/* Design shelf for multi-design viewing / local compare */}
+      <CompareShelfWithThumbnails />
     </div>
   );
 }

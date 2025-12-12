@@ -26,6 +26,8 @@ export function ShareButton() {
         // Create new URL with shareId parameter
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.set("shareId", result.shareId);
+        // Ensure single-design links don't carry multi-design params
+        newUrl.searchParams.delete("setId");
 
         // Update the URL without triggering a page reload
         router.push(newUrl.pathname + newUrl.search);

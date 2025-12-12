@@ -34,11 +34,23 @@ export function GeometricPattern({
   customDesign = null,
 }: PatternProps & { customDesign?: any }) {
   const [grainTexturePaths, setGrainTexturePaths] = useState<string[]>([]);
-  
+
   useEffect(() => {
+    if (!showWoodGrain) {
+      setGrainTexturePaths([]);
+      return;
+    }
+
+    let cancelled = false;
     // Load grain textures dynamically
-    getGrainTextures().then(setGrainTexturePaths);
-  }, []);
+    getGrainTextures().then((paths) => {
+      if (!cancelled) setGrainTexturePaths(paths);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showWoodGrain]);
 
   const customStore = useCustomStore();
   const {
@@ -94,7 +106,11 @@ export function GeometricPattern({
   if (!details) return null;
 
   // Get the appropriate color map (reversed if isReversed is true)
-  const colorEntries = getColorEntries(selectedDesign, customPalette, isReversed);
+  const colorEntries = getColorEntries(
+    selectedDesign,
+    customPalette,
+    isReversed
+  );
 
   // Determine the dimensions based on whether a drawn pattern is available
   const { width: originalModelWidth, height: originalModelHeight } =
@@ -347,11 +363,7 @@ export function GeometricPattern({
         }-${colorPattern}-${orientation}-${isReversed ? 1 : 0}-${
           isRotated ? 1 : 0
         }-${useMini ? 1 : 0}`}
-        rotation={
-          orientation === "vertical"
-            ? [0, 0, Math.PI / 2]
-            : [0, 0, 0]
-        }
+        rotation={orientation === "vertical" ? [0, 0, Math.PI / 2] : [0, 0, 0]}
         scale={[1, 1, 1]}
         position={[0, 0, 0]}
         onClick={handleGroupClick}
