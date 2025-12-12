@@ -7,6 +7,7 @@ import { GeometricLighting } from "@/components/GeometricLighting";
 import { GeometricPattern } from "@/components/GeometricPattern";
 import { useCustomStore } from "@/store/customStore";
 import { Loader2 } from "lucide-react";
+import { Hand } from "lucide-react";
 
 type DesignCanvasProps = {
   className?: string;
@@ -17,22 +18,54 @@ type DesignCanvasProps = {
   };
 };
 
-function LoadingOverlay() {
+function InteractionHint({
+  show,
+  onDismiss,
+}: {
+  show: boolean;
+  onDismiss: () => void;
+}) {
+  if (!show) return null;
+
+  return (
+    <div
+      className="absolute bottom-12 left-1/2 -translate-x-1/2 z-40 pointer-events-none transition-opacity duration-500"
+      style={{ opacity: show ? 1 : 0 }}
+    >
+      <div className="flex flex-col items-center gap-2 bg-gray-900/60 backdrop-blur-md px-4 py-3 rounded-full border border-white/10 shadow-lg">
+        <div className="relative">
+          <Hand className="w-6 h-6 text-white animate-pulse" />
+          <div className="absolute top-0 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-ping" />
+        </div>
+        <span className="text-white text-sm font-medium whitespace-nowrap">
+          Drag to Rotate
+        </span>
+      </div>
+    </div>
+  );
+}
+
+
+
+function LoadingOverlayWrapper({
+  onFinished,
+}: {
+  onFinished: () => void;
+}) {
   const { progress, active } = useProgress();
   const [show, setShow] = useState(true);
 
   useEffect(() => {
-    // If not active and progress is 100, we're done
-    // Add a small delay to ensure smooth transition and cover any render gaps
     if (!active && progress === 100) {
       const timer = setTimeout(() => {
         setShow(false);
+        onFinished();
       }, 500);
       return () => clearTimeout(timer);
     } else {
       setShow(true);
     }
-  }, [active, progress]);
+  }, [active, progress, onFinished]);
 
   if (!show) return null;
 
@@ -61,10 +94,28 @@ function LoadingOverlay() {
 export function DesignCanvas({ className, camera }: DesignCanvasProps) {
   const { viewSettings } = useCustomStore();
   const { showWoodGrain, showColorInfo } = viewSettings;
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const [loadingFinished, setLoadingFinished] = useState(false);
+
+  // Show hint if loading is done and user hasn't interacted yet
+  const showHint = loadingFinished && !hasInteracted;
+
+  const handleInteraction = () => {
+    if (!hasInteracted) {
+      setHasInteracted(true);
+    }
+  };
 
   return (
-    <div className="relative w-full h-full">
-      <LoadingOverlay />
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+    <div 
+      className="relative w-full h-full"
+      onPointerDown={handleInteraction}
+      onWheel={handleInteraction}
+      onTouchStart={handleInteraction}
+    >
+      <LoadingOverlayWrapper onFinished={() => setLoadingFinished(true)} />
+      <InteractionHint show={showHint} onDismiss={handleInteraction} />
       <Canvas
         shadows
         className={className || "w-full h-full"}
