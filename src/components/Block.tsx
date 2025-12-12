@@ -298,7 +298,7 @@ export function Block({
     textureIndex: 0,
   },
   grainTexturePaths = [], // Default to empty array
-  grainOpacity = .3, 
+  grainOpacity = .4, 
 }: BlockProps) {
   const [x, y, z] = position;
   const adjustedPosition: [number, number, number] = [x, y, z + height / 2];
@@ -388,7 +388,10 @@ export function Block({
       side.colorSpace = THREE.SRGBColorSpace;
     }
 
-    return { uniqueTopTexture: top, uniqueSideTexture: side };
+    return { 
+      uniqueTopTexture: top || null, 
+      uniqueSideTexture: side || null 
+    };
   }, [showWoodGrain, topTexture, sideTexture, textureVariation.rotation]);
 
   // Create materials with useMemo

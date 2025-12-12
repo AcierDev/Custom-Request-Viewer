@@ -1,23 +1,20 @@
 "use server";
 
-import fs from "fs";
-import path from "path";
-
 export async function getGrainTextures(): Promise<string[]> {
-  const textureDir = path.join(process.cwd(), "public/textures/grain");
-  
-  try {
-    const files = await fs.promises.readdir(textureDir);
-    
-    // Filter for image files and ignore hidden files like .DS_Store
-    const textureFiles = files
-      .filter((file) => !file.startsWith(".") && /\.(png|jpg|jpeg|webp)$/i.test(file))
-      .sort(); // Sort to ensure consistent order
-      
-    // Return public paths
-    return textureFiles.map((file) => `/textures/grain/${file}`);
-  } catch (error) {
-    console.error("Error reading texture directory:", error);
-    return [];
-  }
+  return [
+    "/textures/grain/Dec%207%20Screenshot%20from%20Photopea%20(10).png",
+    "/textures/grain/Dec%207%20Screenshot%20from%20Photopea%20(12).png",
+    "/textures/grain/Dec%207%20Screenshot%20from%20Photopea%20(15).png",
+    "/textures/grain/Dec%207%20Screenshot%20from%20Photopea%20(16).png",
+    "/textures/grain/Dec%207%20Screenshot%20from%20Photopea%20(17).png",
+    "/textures/grain/Dec%207%20Screenshot%20from%20Photopea%20(18).png",
+    "/textures/grain/Dec%207%20Screenshot%20from%20Photopea%20(2).png",
+    "/textures/grain/Dec%207%20Screenshot%20from%20Photopea%20(3).png",
+    "/textures/grain/Dec%207%20Screenshot%20from%20Photopea%20(4).png",
+    "/textures/grain/Dec%207%20Screenshot%20from%20Photopea%20(5).png",
+    "/textures/grain/Dec%207%20Screenshot%20from%20Photopea%20(6).png",
+    "/textures/grain/Dec%207%20Screenshot%20from%20Photopea%20(7).png",
+    "/textures/grain/Dec%207%20Screenshot%20from%20Photopea%20(8).png",
+    "/textures/grain/Dec%207%20Screenshot%20from%20Photopea%20(9).png"
+  ];
 }
