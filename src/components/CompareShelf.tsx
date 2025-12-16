@@ -2,11 +2,33 @@
 
 import { useState } from "react";
 import { useCompareStore } from "@/store/compareStore";
-import { X, Layers, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  X,
+  Layers,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 type CompareShelfProps = {
   className?: string;
 };
+
+function getConfigBadges(designData: {
+  isReversed?: boolean;
+  isRotated?: boolean;
+  useMini?: boolean;
+  orientation?: "horizontal" | "vertical";
+}) {
+  const badges: string[] = [];
+  if (designData.isReversed) badges.push("Reversed");
+  if (designData.isRotated) badges.push("Rotated");
+  if (designData.useMini) badges.push("Mini");
+  if (designData.orientation === "vertical") badges.push("Vertical");
+  return badges;
+}
 
 export function CompareShelf({ className }: CompareShelfProps) {
   const {
@@ -16,7 +38,7 @@ export function CompareShelf({ className }: CompareShelfProps) {
     removeDesign,
     clearShelf,
   } = useCompareStore();
-  
+
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Auto-expand when a new design is added (optional UX improvement)
@@ -99,7 +121,8 @@ export function CompareShelf({ className }: CompareShelfProps) {
           <div className="px-3 py-2 flex items-center justify-between gap-3 border-b border-gray-200/50 dark:border-gray-800/50">
             <div className="flex items-center gap-2 min-w-0">
               <span className="text-xs text-gray-500 dark:text-gray-400">
-                {designs.length} design{designs.length === 1 ? "" : "s"} saved for comparison
+                {designs.length} design{designs.length === 1 ? "" : "s"} saved
+                for comparison
               </span>
             </div>
 
@@ -115,6 +138,7 @@ export function CompareShelf({ className }: CompareShelfProps) {
             <div className="flex gap-4 pb-2">
               {designs.map((d, idx) => {
                 const isActive = d.id === activeDesignId;
+                const badges = getConfigBadges(d.designData);
                 return (
                   <button
                     key={d.id}
@@ -141,7 +165,7 @@ export function CompareShelf({ className }: CompareShelfProps) {
                           <Layers className="w-6 h-6 text-gray-300 dark:text-gray-700" />
                         </div>
                       )}
-                      
+
                       {isActive && (
                         <div className="absolute inset-0 bg-purple-500/10 dark:bg-purple-400/10 flex items-center justify-center">
                           <div className="bg-white/90 dark:bg-gray-900/90 rounded-full p-1 shadow-sm">
@@ -157,8 +181,22 @@ export function CompareShelf({ className }: CompareShelfProps) {
                       </div>
                       <div className="text-[10px] text-gray-500 dark:text-gray-500 truncate mt-0.5">
                         {d.designData.dimensions.width}×
-                        {d.designData.dimensions.height} • {d.designData.selectedDesign}
+                        {d.designData.dimensions.height} •{" "}
+                        {d.designData.selectedDesign}
                       </div>
+                      {badges.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {badges.map((b) => (
+                            <Badge
+                              key={b}
+                              variant="secondary"
+                              className="px-1.5 py-0 text-[10px] leading-4"
+                            >
+                              {b}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <button
@@ -183,5 +221,3 @@ export function CompareShelf({ className }: CompareShelfProps) {
     </>
   );
 }
-
-

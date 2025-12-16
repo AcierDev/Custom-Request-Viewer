@@ -9,12 +9,16 @@ import { useCustomStore } from "@/store/customStore";
 export type ShareableDesignData = {
   dimensions: Dimensions;
   selectedDesign: ItemDesigns;
+  // Optional fields when the source is the builder app (full snapshot sharing)
+  shippingSpeed?: string;
   colorPattern: ColorPattern;
   orientation: "horizontal" | "vertical";
   isReversed: boolean;
-  customPalette: Array<{ hex: string; name?: string }>;
+  customPalette: Array<{ id?: string; hex: string; name?: string }>;
   isRotated: boolean;
+  style?: string;
   useMini: boolean;
+  activeCustomMode?: string;
 };
 
 export type CompareDesign = {
@@ -150,5 +154,3 @@ export const useCompareStore = create<CompareStore>((set, get) => ({
     }
   },
 }));
-
-
