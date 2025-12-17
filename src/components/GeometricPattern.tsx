@@ -66,14 +66,14 @@ export function GeometricPattern({
   } = customStore;
 
   // Use values from customDesign when provided, otherwise use store values
-  const dimensions = customDesign?.dimensions || storeDimensions;
-  const selectedDesign = customDesign?.selectedDesign || storeSelectedDesign;
-  const colorPattern = customDesign?.colorPattern || storeColorPattern;
-  const orientation = customDesign?.orientation || storeOrientation;
-  const isReversed = customDesign?.isReversed || storeIsReversed;
-  const isRotated = customDesign?.isRotated || storeIsRotated;
-  const useMini = customDesign?.useMini || storeUseMini;
-  const customPalette = customDesign?.customPalette || storeCustomPalette;
+  const dimensions = customDesign?.dimensions ?? storeDimensions;
+  const selectedDesign = customDesign?.selectedDesign ?? storeSelectedDesign;
+  const colorPattern = customDesign?.colorPattern ?? storeColorPattern;
+  const orientation = customDesign?.orientation ?? storeOrientation;
+  const isReversed = customDesign?.isReversed ?? storeIsReversed;
+  const isRotated = customDesign?.isRotated ?? storeIsRotated;
+  const useMini = customDesign?.useMini ?? storeUseMini;
+  const customPalette = customDesign?.customPalette ?? storeCustomPalette;
 
   const { showSplitPanel } = viewSettings;
 

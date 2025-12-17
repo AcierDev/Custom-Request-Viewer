@@ -23,8 +23,6 @@ function getConfigBadges(designData: {
   orientation?: "horizontal" | "vertical";
 }) {
   const badges: string[] = [];
-  if (designData.isReversed) badges.push("Reversed");
-  if (designData.isRotated) badges.push("Rotated");
   if (designData.useMini) badges.push("Mini");
   if (designData.orientation === "vertical") badges.push("Vertical");
   return badges;

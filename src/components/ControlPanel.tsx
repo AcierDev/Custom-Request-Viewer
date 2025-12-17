@@ -1386,22 +1386,7 @@ export function ControlPanel() {
               </div>
             </section>
 
-            {/* View Options */}
-            <section className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white/70 dark:bg-gray-900/70 shadow-sm p-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                    View Options
-                  </h3>
-                  <p className="text-xs text-gray-600 dark:text-gray-300">
-                    Toggle visual aids.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-3 space-y-3">
-
-              </div>
-            </section>
+            
           </TabsContent>
 
           {/* Share Tab */}
