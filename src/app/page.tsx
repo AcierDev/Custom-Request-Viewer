@@ -75,6 +75,31 @@ export default function PreviewPage() {
     }
   }, [mounted, isMobile, shareId, setId, setShowUIControls]);
 
+  // Keyboard shortcut: H key to toggle UI visibility
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Only toggle if H is pressed and not typing in an input/textarea
+      if (
+        e.key === "h" ||
+        e.key === "H"
+      ) {
+        const target = e.target as HTMLElement;
+        const isInputElement =
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable;
+        
+        if (!isInputElement) {
+          e.preventDefault();
+          setShowUIControls(!showUIControls);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [showUIControls, setShowUIControls]);
+
   // Load shared design from query param
   useEffect(() => {
     const loadSharedDesign = async (id: string) => {
@@ -235,19 +260,23 @@ export default function PreviewPage() {
 
   return (
     <div
-      className="w-full h-[calc(100vh-4rem)] relative overflow-hidden"
+      className={`w-full relative overflow-hidden ${
+        showUIControls ? "h-[calc(100vh-4rem)]" : "h-screen -mt-16"
+      }`}
       style={{ background: backgroundColor }}
     >
       {/* Company Links Component */}
-      <CompanyLinks
-        sharedDesign={sharedDesign}
-        selectedDesign={selectedDesign}
-        dimensions={dimensions}
-        colorPattern={colorPattern}
-        onCopyLink={handleCopyLink}
-        copied={copied}
-        useMini={useMini}
-      />
+      {showUIControls && (
+        <CompanyLinks
+          sharedDesign={sharedDesign}
+          selectedDesign={selectedDesign}
+          dimensions={dimensions}
+          colorPattern={colorPattern}
+          onCopyLink={handleCopyLink}
+          copied={copied}
+          useMini={useMini}
+        />
+      )}
 
       {/* Main canvas */}
       <div className="w-full h-full">
@@ -255,17 +284,17 @@ export default function PreviewPage() {
       </div>
 
       {/* Touch hint for mobile users viewing shared designs */}
-      {isMobile && (shareId || setId) && <MobileTouchHint />}
+      {showUIControls && isMobile && (shareId || setId) && <MobileTouchHint />}
 
       {/* Control Panel or Floating Controls */}
       {/* Control Panel (Retractable) */}
-      <ControlPanel />
+      {showUIControls && <ControlPanel />}
 
       {/* Palette Design Prompt - only show when not viewing a shared design */}
-      {!shareId && !setId && <PaletteDesignPrompt />}
+      {showUIControls && !shareId && !setId && <PaletteDesignPrompt />}
 
       {/* Design shelf for multi-design viewing / local compare */}
-      <CompareShelfWithThumbnails />
+      {showUIControls && <CompareShelfWithThumbnails />}
     </div>
   );
 }

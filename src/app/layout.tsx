@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Custom Request Viewer - 3D Pattern Preview",
+  title: "Everwood Viewer",
   description: "Interactive 3D viewer for geometric patterns and designs",
 };
 

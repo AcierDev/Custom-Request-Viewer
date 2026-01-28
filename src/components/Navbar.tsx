@@ -9,7 +9,8 @@ import { motion } from "framer-motion";
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { paletteCreation, setPaletteStage } = useCustomStore();
+  const { paletteCreation, setPaletteStage, viewSettings } = useCustomStore();
+  const { showUIControls } = viewSettings;
 
   const handleLogoClick = () => {
     router.push("/");
@@ -58,6 +59,10 @@ export default function Navbar() {
   const currentConfig = stageConfig[currentStage] || stageConfig.choice;
   const totalSteps = 4;
   const progress = (currentConfig.step / totalSteps) * 100;
+
+  if (!showUIControls) {
+    return null;
+  }
 
   return (
     <header className="fixed top-0 left-0 right-0 z-[60] bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
