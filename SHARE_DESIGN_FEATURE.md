@@ -10,7 +10,7 @@ This document describes the new share design feature that has been implemented f
 
 - Designs are saved to a `sharedDesigns` MongoDB collection
 - Each shared design gets a unique 12-character ID using nanoid
-- Designs automatically expire after 30 days (TTL index)
+// 30 days expiration removed
 - Access count tracking for analytics
 
 ### 2. API Endpoints
@@ -111,15 +111,15 @@ Retrieves a shared design by ID.
 // Index on userId for user-specific queries
 { key: { userId: 1 } }
 
-// TTL index for automatic cleanup after 30 days
-{ key: { createdAt: 1 }, expireAfterSeconds: 30 * 24 * 60 * 60 }
+// TTL index removed - designs persist indefinitely
+{ key: { createdAt: 1 } }
 ```
 
 ## Benefits
 
 1. **Shorter URLs**: Instead of long encoded URLs, users get clean `/shared/abc123def456` links
 2. **Better Analytics**: Track how many times designs are viewed
-3. **Automatic Cleanup**: Old designs are automatically removed after 30 days
+3. **Permanent Storage**: Designs persist indefinitely
 4. **No URL Length Limits**: Can store complex designs without URL size constraints
 5. **Better Error Handling**: Clear error messages for expired or invalid links
 6. **User Tracking**: Optional user association for future features
