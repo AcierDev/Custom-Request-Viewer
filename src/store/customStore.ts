@@ -7,6 +7,8 @@ import { getBlockSizeInches } from "@/lib/utils";
 export interface CustomColor {
   hex: string;
   name?: string;
+  /** Extra proportion of blocks for this color (e.g. 50 = +50%). Default 0. */
+  extraPercent?: number;
 }
 
 export interface SavedPalette {
@@ -106,7 +108,7 @@ interface CustomStore extends PaletteCreationStore {
   lighting: LightingSettings;
 
   // Custom palette (keeping for backward compatibility)
-  customPalette: Array<{ hex: string; name?: string }>;
+  customPalette: Array<{ hex: string; name?: string; extraPercent?: number }>;
 
   // Shared design tracking
   originalSharedData: any | null;
@@ -127,14 +129,20 @@ interface CustomStore extends PaletteCreationStore {
   setBackgroundColor: (hex: string) => void;
   setLighting: (updater: Partial<LightingSettings>) => void;
   setSizeUnit: (unit: SizeUnit) => void;
-  setCustomPalette: (palette: Array<{ hex: string; name?: string }>) => void;
+  setCustomPalette: (
+    palette: Array<{ hex: string; name?: string; extraPercent?: number }>
+  ) => void;
   getShareableDesignData: () => {
     dimensions: Dimensions;
     selectedDesign: ItemDesigns;
     colorPattern: ColorPattern;
     orientation: "horizontal" | "vertical";
     isReversed: boolean;
-    customPalette: Array<{ hex: string; name?: string }>;
+    customPalette: Array<{
+      hex: string;
+      name?: string;
+      extraPercent?: number;
+    }>;
     isRotated: boolean;
     useMini: boolean;
   };
@@ -333,13 +341,24 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
         return false;
       }
 
+      const rawPalette = shareableState.customPalette || [];
+      const customPalette = rawPalette.map(
+        (c: { hex: string; name?: string; extraPercent?: number }) => ({
+          ...c,
+          extraPercent:
+            typeof c.extraPercent === "number" && !Number.isNaN(c.extraPercent)
+              ? c.extraPercent
+              : 0,
+        })
+      );
+
       set({
         dimensions: shareableState.dimensions,
         selectedDesign: shareableState.selectedDesign,
         colorPattern: shareableState.colorPattern,
         orientation: shareableState.orientation,
         isReversed: shareableState.isReversed,
-        customPalette: shareableState.customPalette,
+        customPalette,
         isRotated: shareableState.isRotated,
         useMini: shareableState.useMini,
       });
@@ -356,13 +375,24 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
         return false;
       }
 
+      const rawPalette = designData.customPalette || [];
+      const customPalette = rawPalette.map(
+        (c: { hex: string; name?: string; extraPercent?: number }) => ({
+          ...c,
+          extraPercent:
+            typeof c.extraPercent === "number" && !Number.isNaN(c.extraPercent)
+              ? c.extraPercent
+              : 0,
+        })
+      );
+
       set({
         dimensions: designData.dimensions,
         selectedDesign: designData.selectedDesign,
         colorPattern: designData.colorPattern,
         orientation: designData.orientation,
         isReversed: designData.isReversed,
-        customPalette: designData.customPalette || [],
+        customPalette,
         isRotated: designData.isRotated,
         useMini: designData.useMini,
         originalSharedData: { ...designData },
@@ -387,13 +417,23 @@ export const useCustomStore = create<CustomStore>((set, get) => ({
   revertToSharedDesign: () => {
     const originalData = get().originalSharedData;
     if (originalData) {
+      const rawPalette = originalData.customPalette || [];
+      const customPalette = rawPalette.map(
+        (c: { hex: string; name?: string; extraPercent?: number }) => ({
+          ...c,
+          extraPercent:
+            typeof c.extraPercent === "number" && !Number.isNaN(c.extraPercent)
+              ? c.extraPercent
+              : 0,
+        })
+      );
       set({
         dimensions: originalData.dimensions,
         selectedDesign: originalData.selectedDesign,
         colorPattern: originalData.colorPattern,
         orientation: originalData.orientation,
         isReversed: originalData.isReversed,
-        customPalette: originalData.customPalette || [],
+        customPalette,
         isRotated: originalData.isRotated,
         useMini: originalData.useMini,
         hasChangesFromShared: false,

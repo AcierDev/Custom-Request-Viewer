@@ -14,7 +14,12 @@ export type ShareableDesignData = {
   colorPattern: ColorPattern;
   orientation: "horizontal" | "vertical";
   isReversed: boolean;
-  customPalette: Array<{ id?: string; hex: string; name?: string }>;
+  customPalette: Array<{
+    id?: string;
+    hex: string;
+    name?: string;
+    extraPercent?: number;
+  }>;
   isRotated: boolean;
   style?: string;
   useMini: boolean;
